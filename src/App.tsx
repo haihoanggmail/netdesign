@@ -27,8 +27,9 @@ import {
   LAYER_CATALOG,
   resolveSelectableTargetForLayer
 } from './utils/layerPolicy';
-import { layoutRackNodesForElevationMode } from './utils/rackGeometry';
+import { getCanvasRackHeight, layoutRackNodesForElevationMode } from './utils/rackGeometry';
 import { ViewportProvider, useViewport } from './contexts/ViewportContext';
+import { DEVICE_CATALOG } from './data/deviceCatalog';
 import { ViewportController } from './components/viewport/ViewportController';
 import { LayerPanel } from './components/layers/LayerPanel';
 import { ExportService } from './services/export/exportService';
@@ -820,12 +821,23 @@ function AppContent({ store }: { store: ProjectStore }) {
     y: Math.round((-store.pan.y + (canvasHostRef.current?.clientHeight || 480) * 0.45) / store.zoom)
   };
 
+  const getPresetSize = (presetName: string) => {
+    const preset = DEVICE_CATALOG.find(p => p.name === presetName);
+    return { width: preset?.defaultWidth, height: preset?.defaultHeight };
+  };
+
   // Điểm chèn thiết bị: ở 3D lấy tâm khung nhìn camera (quy về toạ độ canvas), ở 2D dùng tâm canvas
   const resolveInsertPoint = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number, size?: { width?: number; height?: number }) => {
       if (viewport.is3DView) {
         const c = viewport.get3DCanvasCenter();
-        if (c) return c;
+        if (c) {
+          // Toạ độ node là góc trên-trái; 3D cho điểm tâm -> lùi nửa kích thước để thiết bị nằm đúng tâm khung nhìn
+          return {
+            x: Math.max(10, c.x - (size?.width ?? 0) / 2),
+            y: Math.max(10, c.y - (size?.height ?? 0) / 2)
+          };
+        }
       }
       return { x, y };
     },
@@ -1208,7 +1220,13 @@ function AppContent({ store }: { store: ProjectStore }) {
       recordAction('add_rack');
       const c = viewport.is3DView ? viewport.get3DCanvasCenter() : null;
       if (c) {
-        store.addRack(rackName, 42, c.x, c.y);
+        // c là tâm khung nhìn -> đổi sang góc trên-trái (rack rộng 300, cao theo số U)
+        store.addRack(
+          rackName,
+          42,
+          Math.max(10, c.x - 150),
+          Math.max(10, c.y - getCanvasRackHeight(42) / 2)
+        );
       } else {
         store.addRack(rackName);
       }
@@ -1622,11 +1640,11 @@ function AppContent({ store }: { store: ProjectStore }) {
                 is3DDragLocked={viewport.is3DDragLocked}
                 isReadOnlyMode={isReadOnlyMode}
                 onAddDevice={(presetName, x, y) => {
-                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0, getPresetSize(presetName));
                   store.addDeviceFromCatalog(presetName, p.x, p.y);
                 }}
                 onAddCustomDevice={(preset, x, y) => {
-                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0, { width: preset.defaultWidth, height: preset.defaultHeight });
                   store.addCustomDevicePresetToCanvas(preset, p.x, p.y);
                 }}
                 onAddTextNode={(x, y) => {
@@ -1672,12 +1690,12 @@ function AppContent({ store }: { store: ProjectStore }) {
                   is3DDragLocked={viewport.is3DDragLocked}
                   isReadOnlyMode={isReadOnlyMode}
                   onAddDevice={(presetName, x, y) => {
-                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0, getPresetSize(presetName));
                     store.addDeviceFromCatalog(presetName, p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
                   onAddCustomDevice={(preset, x, y) => {
-                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0, { width: preset.defaultWidth, height: preset.defaultHeight });
                     store.addCustomDevicePresetToCanvas(preset, p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
@@ -1749,7 +1767,13 @@ function AppContent({ store }: { store: ProjectStore }) {
                   isSceneDragLocked={viewport.is3DDragLocked}
                   draggedPresetName={draggedPresetName}
                   onDropDevice={(presetName, x, y) => {
-                    store.addDeviceFromCatalog(presetName, x, y);
+                    // x/y là điểm thả (tâm) trên sàn 3D -> đổi sang góc trên-trái như 2D để vị trí khớp hai chế độ
+                    const size = getPresetSize(presetName);
+                    store.addDeviceFromCatalog(
+                      presetName,
+                      Math.max(10, x - (size.width ?? 0) / 2),
+                      Math.max(10, y - (size.height ?? 0) / 2)
+                    );
                   }}
                   onDropDeviceIntoRack={(presetName, rackId, preferredU) => {
                     store.addDeviceFromCatalogToRack(presetName, rackId, preferredU);

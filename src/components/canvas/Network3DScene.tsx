@@ -191,7 +191,8 @@ const _camRotMatrix = new THREE.Matrix4();
 function projectClientToCanvas(
   refs: { renderer: THREE.WebGLRenderer; camera: THREE.Camera; controls: { target: THREE.Vector3 }; origin: WorldCoordinateOrigin },
   clientX: number,
-  clientY: number
+  clientY: number,
+  planeY: number
 ): { x: number; y: number } | null {
   const rect = refs.renderer.domElement.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
@@ -201,7 +202,7 @@ function projectClientToCanvas(
   );
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(ndc, refs.camera);
-  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -refs.controls.target.y);
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
   const hit = new THREE.Vector3();
   if (!raycaster.ray.intersectPlane(plane, hit)) return null;
   return {
@@ -327,6 +328,9 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
   const [rebuildNonce, setRebuildNonce] = useState(0);
 
   const autoFrameNextBuildRef = useRef(true);
+  // Gốc toạ độ 3D được giữ cố định trong cùng một ngữ cảnh (dự án/chế độ/tầng) để thêm hoặc di chuyển
+  // thiết bị không làm cả cảnh bị trượt so với camera.
+  const stableOriginRef = useRef<{ key: string; origin: WorldCoordinateOrigin } | null>(null);
   const prevProjectIdRef = useRef(project.id);
   const prevViewAllFloorsRef = useRef(viewAllFloors);
   const prevActiveModeRef = useRef(project.activeMode);
@@ -378,6 +382,7 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
     requestRender: () => void;
     origin: WorldCoordinateOrigin;
     worldBounds: World3DBounds;
+    floorYById: Map<string, number>;
     nodeGroups: Map<string, { group: THREE.Group; node: DiagramNode; floorY: number }>;
     cableEntries: Populated3DCableEntry[];
   } | null>(null);
@@ -729,6 +734,15 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
       getCanvasCenter: () => {
         const refs = sceneRefs.current;
         if (!refs) return null;
+        const rect = refs.renderer.domElement.getBoundingClientRect();
+        const planeY = refs.floorYById.get(projectRef.current.activeFloorId) ?? 0;
+        const viaRay = projectClientToCanvas(
+          refs,
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+          planeY
+        );
+        if (viaRay) return viaRay;
         const t = refs.controls.target;
         return {
           x: Math.round(t.x / WORLD_SCALE + refs.origin.centerX),
@@ -738,7 +752,8 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
       clientToCanvasPoint: (clientX: number, clientY: number) => {
         const refs = sceneRefs.current;
         if (!refs) return null;
-        return projectClientToCanvas(refs, clientX, clientY);
+        const planeY = refs.floorYById.get(projectRef.current.activeFloorId) ?? 0;
+        return projectClientToCanvas(refs, clientX, clientY, planeY);
       },
       isContextLost: () => {
         const refs = sceneRefs.current;
@@ -1104,6 +1119,7 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
       transitioning: false,
       requestRender,
       origin: { centerX: 500, centerY: 320 },
+      floorYById: new Map<string, number>(),
       worldBounds: {
         minX: -8,
         maxX: 8,
@@ -1721,7 +1737,13 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
     disposeObjectTree(refs.worldRoot, new Set<THREE.Texture>([refs.shadowTex, refs.lockBadgeTex]));
     refs.worldRoot.clear();
 
+    const originKey = `${project.id}|${project.activeMode}|${project.activeFloorId}|${viewAllFloors ? 1 : 0}|${rebuildNonce}`;
+    const keptOrigin =
+      stableOriginRef.current && stableOriginRef.current.key === originKey
+        ? stableOriginRef.current.origin
+        : undefined;
     const populated = populateInfrastructure3DWorld(refs.worldRoot, project, selection.id, {
+      originOverride: keptOrigin,
       showRooms: true,
       showCables: true,
       explodeSpread,
@@ -1730,8 +1752,10 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
       lockBadgeTex: refs.lockBadgeTex,
       viewAllFloors
     });
+    stableOriginRef.current = { key: originKey, origin: populated.origin };
     refs.origin = populated.origin;
     refs.worldBounds = populated.bounds;
+    refs.floorYById = populated.floorYById;
     refs.nodeGroups = populated.nodeGroups;
     refs.cableEntries = populated.cableEntries;
 
@@ -1926,7 +1950,12 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
         }
 
         if (!onDropDevice) return;
-        const pt = projectClientToCanvas(refs, e.clientX, e.clientY);
+        const pt = projectClientToCanvas(
+          refs,
+          e.clientX,
+          e.clientY,
+          refs.floorYById.get(projectRef.current.activeFloorId) ?? 0
+        );
         if (!pt) return;
         onDropDevice(presetName, pt.x, pt.y);
       }}

@@ -11,9 +11,9 @@ import {
 } from '../../../types/infrastructure';
 import {
   getAssetUHeight,
-  isRackMountedTopologyShadowNode,
-  layoutRackNodesForElevationMode
+  isRackMountedTopologyShadowNode
 } from '../../../utils/rackGeometry';
+import { computeVisibleNodes, computeVisibleRooms } from '../../../utils/visibilityResolver';
 import {
   getHiddenLayerSet,
   isNodeEffectivelyLocked,
@@ -1432,6 +1432,8 @@ export interface Populated3DWorldResult {
   nodeGroups: Map<string, { group: THREE.Group; node: DiagramNode; floorY: number }>;
   cableEntries: Populated3DCableEntry[];
   bounds: World3DBounds;
+  /** Độ cao sàn (trục Y) của từng tầng trong cảnh 3D; dùng để thả/chèn thiết bị đúng tầng. */
+  floorYById: Map<string, number>;
 }
 
 export function populateInfrastructure3DWorld(
@@ -1446,6 +1448,8 @@ export function populateInfrastructure3DWorld(
     shadowTex: THREE.Texture;
     lockBadgeTex?: THREE.Texture;
     viewAllFloors?: boolean;
+    /** Giữ nguyên gốc toạ độ giữa các lần dựng lại để cảnh không bị trượt khi thêm/di chuyển thiết bị. */
+    originOverride?: WorldCoordinateOrigin;
   }
 ): Populated3DWorldResult {
   const isFloorBasedMode = ['floorplan', 'cctv', 'wifi', 'fiber'].includes(project.activeMode);
@@ -1486,38 +1490,29 @@ export function populateInfrastructure3DWorld(
 
   const hiddenLayerSet = getHiddenLayerSet(project.settings);
 
-  let visibleNodes = project.nodes.filter(n => {
-    if (n.hidden) return false;
+  // Dùng chung bộ quy tắc hiển thị với 2D (visibilityResolver) để 2D/3D luôn thấy cùng một tập đối tượng.
+  // Chế độ cắt lớp nhiều tầng: bỏ lọc theo tầng đang chọn.
+  const scopeFloorId = isMultiFloorCutaway ? '' : project.activeFloorId;
+  const visibleNodes = computeVisibleNodes({
+    nodes: project.nodes,
+    assets: project.assets,
+    racks: project.racks,
+    activeMode: project.activeMode,
+    activeFloorId: scopeFloorId
+  }).filter(n => {
     if (n.type === 'legend' || n.type === 'text') return false;
-    const nodeLayer = resolveNodeLayer(n, project.assets);
-    if (hiddenLayerSet.has(nodeLayer)) return false;
-    if (isFloorBasedMode) {
-      if (shadowToRackNodeId.has(n.id)) return false;
-      if (!isMultiFloorCutaway && n.floorId && project.activeFloorId && n.floorId !== project.activeFloorId) {
-        return false;
-      }
-      return true;
-    }
-    if (project.activeMode === 'rack') return n.diagramMode === 'rack' || n.type === 'rack';
-    return true;
+    return !hiddenLayerSet.has(resolveNodeLayer(n, project.assets));
   });
-
-  if (project.activeMode === 'rack') {
-    visibleNodes = layoutRackNodesForElevationMode(visibleNodes, project.racks);
-  }
 
   const showRoomsEffective = options.showRooms && !hiddenLayerSet.has('rooms');
   const showTraysEffective = !hiddenLayerSet.has('trays');
   const showCablesEffective = options.showCables && !hiddenLayerSet.has('cables');
 
   const visibleRooms = showRoomsEffective
-    ? project.rooms.filter(r => {
-        if (isFloorBasedMode) {
-          if (!isMultiFloorCutaway && r.floorId && project.activeFloorId && r.floorId !== project.activeFloorId) {
-            return false;
-          }
-        }
-        return true;
+    ? computeVisibleRooms({
+        rooms: project.rooms,
+        activeMode: project.activeMode,
+        activeFloorId: scopeFloorId
       })
     : [];
 
@@ -1532,7 +1527,7 @@ export function populateInfrastructure3DWorld(
       })
     : [];
 
-  const origin = computeWorldOrigin(visibleNodes, visibleRooms);
+  const origin = options.originOverride ?? computeWorldOrigin(visibleNodes, visibleRooms);
   const nodeGroups = new Map<string, { group: THREE.Group; node: DiagramNode; floorY: number }>();
   const cableEntries: Populated3DCableEntry[] = [];
 
@@ -1765,7 +1760,7 @@ export function populateInfrastructure3DWorld(
     size
   };
 
-  return { origin, isMultiFloorCutaway, nodeGroups, cableEntries, bounds };
+  return { origin, isMultiFloorCutaway, nodeGroups, cableEntries, bounds, floorYById: floorYMap };
 }
 
 export function disposeObjectTree(root: THREE.Object3D, keepTextures?: Set<THREE.Texture>) {
