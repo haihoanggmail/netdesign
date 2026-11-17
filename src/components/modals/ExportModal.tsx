@@ -30,11 +30,14 @@ import { computeProjectCableSummary } from '../../utils/cableRouting';
 import { computePureDiagramBounds, generatePureSvgMarkup } from '../../utils/svgExport';
 import { computeA4ScaleMetrics } from '../../utils/pdfExporter';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { VIEWER_DATA_PREVIEW_ONLY, ViewerDataOptions } from '../../utils/htmlViewerExporter';
+import { isViewer3DRuntimeReady } from '../../services/export/exportHtml3d';
 import type {
   CameraPresetId,
   Capture3DBackground,
   Capture3DRequestOptions,
-  Capture3DResult
+  Capture3DResult,
+  Scene3DSnapshot
 } from '../../contexts/ViewportContext';
 import {
   CAMERA_PRESET_LABELS,
@@ -52,6 +55,7 @@ interface ExportModalProps {
   is3DView?: boolean;
   isCapturing3D?: boolean;
   onCapture3D?: (options?: Capture3DRequestOptions) => Promise<Capture3DResult>;
+  onCapture3DScene?: () => Scene3DSnapshot;
   onClose: () => void;
   onLoadProjectJson: (jsonState: ProjectState) => void;
   onRequestPackageImport?: (file: File) => Promise<void> | void;
@@ -71,6 +75,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   is3DView = false,
   isCapturing3D = false,
   onCapture3D,
+  onCapture3DScene,
   onClose,
   onLoadProjectJson,
   onRequestPackageImport,
@@ -78,11 +83,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onAfterExportRouterTree,
   onMergeExcelDevices
 }) => {
-  const [statusBanner, setStatusBanner] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: 'info' | 'success' | 'warning' | 'error'; text: string } | null>(null);
 
   // Content Scope & 3D Export Settings
   const [contentScope, setContentScope] = useState<ExportContentScope>(is3DView ? '3d' : '2d');
   const [background3D, setBackground3D] = useState<Capture3DBackground>('light');
+  const [viewerData, setViewerData] = useState<ViewerDataOptions>(VIEWER_DATA_PREVIEW_ONLY);
   const [selected3DAngles, setSelected3DAngles] = useState<CameraPresetId[]>(['iso']);
 
   // PDF / Technical Print Settings & CAD Title Block
@@ -238,8 +244,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   // 2c. Export Standalone Offline HTML Viewer (2D + BOM)
   const handleExportHtmlViewer = () => {
-    ExportService.exportHtmlViewer(project);
-    setStatusBanner({ type: 'success', text: 'Đã xuất trình xem HTML độc lập 2D + BOM (không cần cài phần mềm)!' });
+    try {
+      if (contentScope === '2d') {
+        ExportService.exportHtmlViewer(project);
+        setStatusBanner({ type: 'success', text: 'Đã xuất trình xem HTML độc lập 2D + BOM (không cần cài phần mềm)!' });
+        return;
+      }
+      const res = ExportService.exportHtmlViewer3D(project, {
+        contentScope,
+        captureScene: onCapture3DScene,
+        data: viewerData
+      });
+      const embedded = Object.entries(viewerData).filter(([, v]) => v).map(([k]) => k);
+      setStatusBanner({
+        type: res.warning ? 'warning' : 'success', // cảnh báo dung lượng ≠ lỗi: file đã xuất thành công
+        text:
+          `Đã xuất trình xem HTML 3D (${res.filename}, ${(res.bytes / 1048576).toFixed(1)} MB). ` +
+          (embedded.length
+            ? `File có nhúng dữ liệu: ${embedded.join(', ')} — chỉ gửi cho người được phép xem.`
+            : 'File chỉ chứa mô hình 3D và tên đối tượng, không kèm IP/VLAN/tài sản.') +
+          (res.warning ? ` ${res.warning}` : '')
+      });
+    } catch (err: unknown) {
+      setStatusBanner({ type: 'error', text: err instanceof Error ? err.message : String(err) });
+    }
   };
 
   // 2d. Export BOM CSV (Assets, Cable Lengths, & Rack Components)
@@ -566,12 +594,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 className={`px-6 py-2.5 border-b font-medium flex items-center gap-2 shrink-0 ${
                   statusBanner.type === 'error'
                     ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
+                    : statusBanner.type === 'warning'
+                    ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300'
                     : statusBanner.type === 'success'
                     ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
                     : 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-300'
                 }`}
               >
-                {statusBanner.type === 'error' ? (
+                {statusBanner.type === 'error' || statusBanner.type === 'warning' ? (
                   <AlertCircle className="w-4 h-4 shrink-0" />
                 ) : (
                   <Check className="w-4 h-4 shrink-0" />
@@ -914,15 +944,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </div>
                 </button>
 
-                {/* Option 6: Standalone HTML Viewer (2D + BOM, 2D only) */}
+                {/* Option 6: Standalone HTML Viewer (2D + BOM, hoặc 3D xoay được) */}
                 <button
                   type="button"
-                  disabled={contentScope === '3d'}
+                  disabled={contentScope !== '2d' && (!is3DView || !isViewer3DRuntimeReady())}
                   onClick={handleExportHtmlViewer}
                   title={
-                    contentScope === '3d'
-                      ? 'Trình xem HTML chỉ xuất sơ đồ 2D CAD + BOM · Hãy chọn phạm vi 2D hoặc Cả 2D & 3D'
-                      : 'Tải trình xem HTML độc lập 2D + BOM'
+                    contentScope !== '2d' && !isViewer3DRuntimeReady()
+                      ? 'Chưa có runtime trình xem 3D — chạy "npm run build:viewer3d"'
+                      : contentScope !== '2d' && !is3DView
+                      ? 'Hãy chuyển sang chế độ 3D trước khi xuất HTML 3D'
+                      : contentScope === '2d'
+                      ? 'Tải trình xem HTML độc lập 2D + BOM'
+                      : 'Tải trình xem HTML 3D xoay được (offline)'
                   }
                   className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-teal-500 bg-slate-50/50 hover:bg-teal-50/30 dark:bg-slate-800/30 transition-all cursor-pointer flex items-start gap-3 text-left disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:border-slate-200"
                 >
@@ -931,21 +965,62 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-sm text-slate-900 dark:text-white">Trình Xem HTML Độc Lập (.html)</span>
-                      {contentScope === '3d' && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
-                          Chỉ 2D
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">
+                        {contentScope === '2d' ? 'Trình Xem HTML Độc Lập (.html)' : 'Trình Xem HTML 3D Xoay Được (.html)'}
+                      </span>
+                      {contentScope !== '2d' && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shrink-0">
+                          3D
                         </span>
                       )}
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                      Sơ đồ 2D CAD + BOM thiết bị offline (không bao gồm mô hình 3D WebGL)
+                      {contentScope === '2d'
+                        ? 'Sơ đồ 2D CAD + BOM thiết bị offline (không bao gồm mô hình 3D WebGL)'
+                        : 'Mô hình 3D tương tác như trong phần mềm: xoay ngang/dọc, zoom, dịch chuyển, đổi góc nhìn (Iso / Trên / Trước / Bên), bấm xem thông tin thiết bị — mở offline bằng trình duyệt'}
                     </div>
                     <div className="text-[10px] text-teal-600 font-semibold mt-1.5">
-                      {contentScope === '3d' ? 'Không áp dụng cho phạm vi 3D' : 'Tải file HTML Viewer →'}
+                      {contentScope !== '2d' && !isViewer3DRuntimeReady()
+                        ? 'Thiếu runtime 3D — chạy npm run build:viewer3d'
+                        : contentScope !== '2d' && !is3DView
+                        ? 'Cần chuyển sang chế độ 3D trước'
+                        : contentScope === '2d'
+                        ? 'Tải file HTML Viewer →'
+                        : 'Tải file HTML 3D Viewer →'}
                     </div>
                   </div>
                 </button>
+
+                {contentScope !== '2d' && (
+                  <div className="md:col-span-2 p-3 rounded-xl border border-amber-300/70 bg-amber-50/60 dark:bg-amber-900/10 dark:border-amber-700/50 text-[11px] text-slate-700 dark:text-slate-300">
+                    <div className="font-bold text-amber-700 dark:text-amber-400 mb-1">
+                      Dữ liệu nhúng trong HTML 3D (mặc định: không nhúng)
+                    </div>
+                    <div className="mb-2">
+                      File HTML đọc được bằng bất kỳ ai nhận file, kể cả khi không có phần mềm. Chỉ bật những nhóm bạn cho phép chia sẻ. Luôn có trong file (kể cả khi không bật mục nào): tên/nhãn và loại đối tượng, hình học mô hình 3D.
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {([
+                        ['assetInfo', 'Thông tin tài sản (mã TS, hãng, model, công suất)'],
+                        ['ip', 'Địa chỉ IP'],
+                        ['vlan', 'VLAN'],
+                        ['status', 'Trạng thái thiết bị'],
+                        ['cableInfo', 'Thông tin cáp (nguồn, đích, loại, chiều dài)'],
+                        ['deviceTable', 'Kèm bảng Thiết bị (theo từng đối tượng trong mô hình)'],
+                        ['cableTable', 'Kèm bảng Cáp (mã cáp, nguồn, đích, loại, chiều dài)']
+                      ] as Array<[keyof ViewerDataOptions, string]>).map(([key, label]) => (
+                        <label key={key} className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={viewerData[key]}
+                            onChange={e => setViewerData(prev => ({ ...prev, [key]: e.target.checked }))}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Option 7: Export BOM CSV & Open BOM Dashboard */}
                 <div className="md:col-span-2 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 flex flex-wrap items-start justify-between gap-3">
