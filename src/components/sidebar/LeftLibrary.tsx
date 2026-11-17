@@ -459,10 +459,8 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
     setOpenGroups(prev => ({ ...prev, [id]: true }));
   };
 
-  const isLockedIn3D = is3DView && is3DDragLocked;
-
   const handleAddPreset = (preset: DevicePreset | CustomDevicePreset) => {
-    if (isReadOnlyMode || isLockedIn3D) return;
+    if (isReadOnlyMode) return;
     recordRecent(preset.name);
     if ('id' in preset && onAddCustomDevice) {
       onAddCustomDevice(preset, canvasCenter.x, canvasCenter.y);
@@ -472,7 +470,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
   };
 
   const handleTriggerSymbol = (action: SymbolBlockItem['action']) => {
-    if (isReadOnlyMode || isLockedIn3D) return;
+    if (isReadOnlyMode) return;
     switch (action) {
       case 'rack':
         onAddRack();
@@ -669,7 +667,8 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
     return [vendor, portPart, wattPart].filter(Boolean).join(' · ');
   };
 
-  const isInsertBlocked = isLockedIn3D || isReadOnlyMode;
+  // Đồng nhất 2D/3D: thêm thiết bị (kéo thả hoặc nhấp) luôn khả dụng, chỉ chặn khi Chỉ xem.
+  const isInsertBlocked = isReadOnlyMode;
 
   const renderDeviceCard = (preset: DevicePreset | CustomDevicePreset) => {
     const isCustom = 'id' in preset;
@@ -679,9 +678,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
       : SHORT_LABELS[preset.name] || preset.name;
     const accent = getCategoryAccentColor(preset.category);
     const specLine = formatCardSpecs(preset);
-    const tooltip = isLockedIn3D
-      ? `${preset.name} — Mở khóa 3D (hoặc chuyển về 2D CAD) để kéo thả / thêm lên bản vẽ`
-      : isReadOnlyMode
+    const tooltip = isReadOnlyMode
       ? `${preset.name} — Đang ở chế độ Chỉ xem`
       : `${preset.name}\n${preset.vendor} · ${preset.model}\n${preset.defaultPorts.length} cổng · ${preset.powerWatts}W\nKéo thả vào bản vẽ hoặc nhấp đúp`;
 
@@ -760,7 +757,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
               onClick={() => handleAddPreset(preset)}
               aria-label={`Thêm ${preset.name}`}
               className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-[#155EEF] hover:text-white text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-600"
-              title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : 'Thêm vào giữa bản vẽ'}
+              title={'Thêm vào giữa bản vẽ'}
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -823,7 +820,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
               }}
               aria-label={`Thêm ${preset.name}`}
               className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-[#155EEF] hover:text-white text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
-              title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : 'Thêm nhanh lên bản vẽ'}
+              title={'Thêm nhanh lên bản vẽ'}
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -1015,7 +1012,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                       disabled={isInsertBlocked}
                       onClick={() => handleAddPreset(item)}
                       className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800 hover:border-[#155EEF] text-xs font-medium text-slate-700 dark:text-slate-200 truncate max-w-[116px] transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
-                      title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : `Thêm nhanh ${item.name}`}
+                      title={`Thêm nhanh ${item.name}`}
                     >
                       + {SHORT_LABELS[item.name] || item.name}
                     </button>
@@ -1104,9 +1101,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                                     disabled={isInsertBlocked}
                                     onClick={() => handleTriggerSymbol(sym.action)}
                                     title={
-                                      isLockedIn3D
-                                        ? `${sym.label} — mở khóa 3D để thêm`
-                                        : isReadOnlyMode
+                                      isReadOnlyMode
                                         ? 'Đang ở chế độ Chỉ xem'
                                         : sym.sub
                                     }

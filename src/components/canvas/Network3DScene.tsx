@@ -81,7 +81,11 @@ interface Network3DSceneProps {
   isReadOnlyMode?: boolean;
   isSceneDragLocked?: boolean;
   /** Thả thiết bị từ thư viện vào cảnh 3D (chỉ khi đã mở khóa 3D). x/y là toạ độ canvas 2D. */
+  /** Tên preset đang kéo từ thư viện (dự phòng nếu trình duyệt không trả dataTransfer). */
+  draggedPresetName?: string | null;
   onDropDevice?: (presetName: string, x: number, y: number) => void;
+  /** Thả thiết bị lên một tủ rack trong 3D: preferredU tính theo độ cao điểm thả. */
+  onDropDeviceIntoRack?: (presetName: string, rackId: string, preferredU: number) => void;
   view3DOptions?: View3DDisplayOptions;
   onChangeView3DOptions?: React.Dispatch<React.SetStateAction<View3DDisplayOptions>>;
   onContextLostChange?: (lost: boolean) => void;
@@ -212,7 +216,9 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
   activeTool = 'select',
   isReadOnlyMode = false,
   isSceneDragLocked = true,
+  draggedPresetName,
   onDropDevice,
+  onDropDeviceIntoRack,
   view3DOptions: externalViewOptions,
   onChangeView3DOptions,
   onContextLostChange,
@@ -1870,30 +1876,63 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
 
   // Touch drag session uses DragSessionItem['selectType'] compatibility: allow 'edge' in DragSession
   return (
-    <div ref={rootRef} className="w-full h-full relative overflow-hidden bg-slate-950 select-none">
+    <div
+      ref={rootRef}
+      data-testid="3d-drop-zone"
+      className="w-full h-full relative overflow-hidden bg-slate-950 select-none"
+      onDragOver={e => {
+        // Đồng nhất với 2D: kéo thả thêm thiết bị luôn hoạt động (không phụ thuộc khóa kéo 3D)
+        if (isReadOnlyMode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }}
+      onDrop={e => {
+        if (isReadOnlyMode) return;
+        e.preventDefault();
+        const presetName =
+          e.dataTransfer.getData('presetName') || e.dataTransfer.getData('text/plain') || draggedPresetName || '';
+        if (!presetName) return;
+        const refs = sceneRefs.current;
+        if (!refs) return;
+
+        // Thả lên tủ rack -> lắp vào rack (giống 2D)
+        if (onDropDeviceIntoRack && !presetName.toLowerCase().includes('rack')) {
+          const rect = refs.renderer.domElement.getBoundingClientRect();
+          const ndc = new THREE.Vector2(
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -(((e.clientY - rect.top) / rect.height) * 2 - 1)
+          );
+          const rc = new THREE.Raycaster();
+          rc.setFromCamera(ndc, refs.camera);
+          for (const hit of rc.intersectObjects(refs.worldRoot.children, true)) {
+            const ud = hit.object.userData || {};
+            if (ud.selectType === 'rack' && ud.selectId && ud.nodeId) {
+              const rack = projectRef.current.racks.find(r => r.id === String(ud.selectId));
+              const grp = refs.nodeGroups.get(String(ud.nodeId));
+              let preferredU = 1;
+              if (rack && grp) {
+                const box = new THREE.Box3().setFromObject(grp);
+                const h = box.max.y - box.min.y;
+                if (h > 0) {
+                  const frac = Math.min(1, Math.max(0, (hit.point.y - box.min.y) / h));
+                  preferredU = Math.max(1, Math.min(rack.totalUnits, Math.round(frac * rack.totalUnits)));
+                }
+              }
+              onDropDeviceIntoRack(presetName, String(ud.selectId), preferredU);
+              return;
+            }
+            if (ud.selectType && ud.selectId) break;
+          }
+        }
+
+        if (!onDropDevice) return;
+        const pt = projectClientToCanvas(refs, e.clientX, e.clientY);
+        if (!pt) return;
+        onDropDevice(presetName, pt.x, pt.y);
+      }}
+    >
       {/* Dedicated WebGL Mount Container */}
-      <div
-        ref={mountRef}
-        className="w-full h-full relative"
-        data-testid="3d-drop-zone"
-        onDragOver={e => {
-          if (isSceneDragLocked || isReadOnlyMode || !onDropDevice) return;
-          if (!Array.from(e.dataTransfer.types).some(t => t === 'presetname' || t === 'text/plain')) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'copy';
-        }}
-        onDrop={e => {
-          if (isSceneDragLocked || isReadOnlyMode || !onDropDevice) return;
-          const presetName = e.dataTransfer.getData('presetName') || e.dataTransfer.getData('text/plain');
-          if (!presetName) return;
-          e.preventDefault();
-          const refs = sceneRefs.current;
-          if (!refs) return;
-          const pt = projectClientToCanvas(refs, e.clientX, e.clientY);
-          if (!pt) return;
-          onDropDevice(presetName, pt.x, pt.y);
-        }}
-      />
+      <div ref={mountRef} className="w-full h-full relative" />
 
       {webglError && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 text-white p-6 z-30">

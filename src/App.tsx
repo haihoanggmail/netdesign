@@ -1700,7 +1700,11 @@ function AppContent({ store }: { store: ProjectStore }) {
                     store.addRack('Tủ Rack Phân Phối IDF');
                     layout.setActiveDrawer('none');
                   }}
-                  onDragPresetChange={setDraggedPresetName}
+                  onDragPresetChange={name => {
+                    setDraggedPresetName(name);
+                    // Ngăn kéo thư viện che khung vẽ: đóng lại (hoãn 1 nhịp để không hủy thao tác kéo)
+                    if (name) window.setTimeout(() => layout.setActiveDrawer('none'), 0);
+                  }}
                   canvasCenter={canvasCenter}
                   widthPx={296}
                   isOverlayDrawer
@@ -1743,8 +1747,12 @@ function AppContent({ store }: { store: ProjectStore }) {
                   activeTool={store.activeTool}
                   isReadOnlyMode={isReadOnlyMode}
                   isSceneDragLocked={viewport.is3DDragLocked}
+                  draggedPresetName={draggedPresetName}
                   onDropDevice={(presetName, x, y) => {
                     store.addDeviceFromCatalog(presetName, x, y);
+                  }}
+                  onDropDeviceIntoRack={(presetName, rackId, preferredU) => {
+                    store.addDeviceFromCatalogToRack(presetName, rackId, preferredU);
                   }}
                   view3DOptions={viewport.view3DOptions}
                   onChangeView3DOptions={viewport.setView3DOptions}
