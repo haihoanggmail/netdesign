@@ -9,7 +9,7 @@
    - Lệnh phát triển thuần Vite:
      ```bash
      npm install
-     npm run dev:vite
+     npm run dev:vite   # tự chạy build:viewer3d trước (predev:vite) để xuất được HTML 3D
      ```
    - Build tĩnh để triển khai lên Cloudflare Pages, GitHub Pages, Netlify hoặc Nginx:
      ```bash
