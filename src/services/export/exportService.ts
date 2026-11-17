@@ -5,6 +5,8 @@ import { runExportSvg } from './exportSvg';
 import { runExportDxf } from './exportDxf';
 import { runExportPdf } from './exportPdf';
 import { runExportBundle } from './exportBundle';
+import { runExportHtml3D, CaptureSceneFn } from './exportHtml3d';
+import type { ViewerDataOptions } from '../../utils/htmlViewerExporter';
 import {
   ExportBundleConfig,
   ExportContentScope,
@@ -32,6 +34,13 @@ export const ExportService = {
 
   exportBundle(project: ProjectState, config: ExportBundleConfig) {
     return runExportBundle(project, config);
+  },
+
+  exportHtmlViewer3D(
+    project: ProjectState,
+    config: { contentScope: ExportContentScope; captureScene?: CaptureSceneFn; data?: ViewerDataOptions }
+  ) {
+    return runExportHtml3D(project, config);
   },
 
   exportHtmlViewer(project: ProjectState) {

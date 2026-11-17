@@ -19,6 +19,7 @@ import {
   PatchLink,
   ProjectRevision
 } from '../types/infrastructure';
+import { reduceViewport } from '../utils/viewportMath';
 import { createFiveStoreyBuildingProject, ARCHITECTURE_TEMPLATES } from '../data/templates';
 import { DEVICE_CATALOG, CustomDevicePreset, createDeviceAssetFromPreset } from '../data/deviceCatalog';
 import {
@@ -296,8 +297,22 @@ export function useProjectStore() {
   const [selection, setSelection] = useState<SelectionState>({ type: 'none' });
 
   // Canvas Viewport transform
-  const [zoom, setZoom] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  // Viewport (zoom + pan) is ONE atomic piece of transient UI state: a single update can never
+  // render a mixed (new zoom / old pan) frame. It is intentionally NOT part of undo history or autosave.
+  const [viewportTransform, setViewportTransformState] = useState<{ zoom: number; pan: { x: number; y: number } }>({
+    zoom: 1,
+    pan: { x: 50, y: 50 }
+  });
+  const zoom = viewportTransform.zoom;
+  const pan = viewportTransform.pan;
+  // EVERY writer (setViewportTransform / setZoom / setPan) goes through reduceViewport, so the invariants
+  // (finite zoom within [MIN_ZOOM, MAX_ZOOM], finite pan, both fields present) hold at the single place state changes.
+  const setViewportTransform = useCallback((next: { zoom: number; pan: { x: number; y: number } }) => {
+    setViewportTransformState(prev => reduceViewport(prev, next));
+  }, []);
+  // Legacy single-field setters kept for existing callers; both go through the same guarded atomic state.
+  const setZoom = useCallback((z: number) => setViewportTransformState(v => reduceViewport(v, { zoom: z, pan: v.pan })), []);
+  const setPan = useCallback((p: { x: number; y: number }) => setViewportTransformState(v => reduceViewport(v, { zoom: v.zoom, pan: p })), []);
 
   // Connect Cable in-progress
   const [connectingSource, setConnectingSource] = useState<{ nodeId: string; portId?: string } | null>(null);
@@ -2577,6 +2592,7 @@ export function useProjectStore() {
     clearSelection,
     zoom,
     setZoom,
+    setViewportTransform,
     pan,
     setPan,
     connectingSource,
