@@ -1,5 +1,18 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import {
+  computeVisibleCables,
+  computeVisibleDeviceNodes,
+  computeVisibleNodes,
+  computeVisibleRackNodes,
+  computeVisibleRooms,
+  createNodeRectResolver
+} from '../../utils/visibilityResolver';
+import { zoomByFactorAtPoint, zoomInFactor, zoomOutFactor } from '../../utils/viewportMath';
+import {
+  ADD_LABEL_BOX, ADD_WAYPOINT_HANDLE, BUNDLE_BADGE, BUNDLE_JACKET, ENDPOINT_HANDLE, LABEL_SHADOW, LABEL_STROKE, WAYPOINT_HANDLE,
+  bundleBadgeGeometry, bundleDotsWidth, cableLabelTextLength, cableStrokeWidths, dropShadowCss, normalizeCableStrokeWidth, resolveCableLabelPresentation
+} from '../../utils/cableRenderMetrics';
+import {
   ProjectState,
   SelectionState,
   DiagramNode,
@@ -39,9 +52,6 @@ import {
   getRackCanvasMetrics,
   pixelYToRackU,
   canPlaceDeviceAtU,
-  getSlotSpanRect,
-  isRackMountedTopologyShadowNode,
-  layoutRackNodesForElevationMode
 } from '../../utils/rackGeometry';
 import { sanitizeSafeImageUrl } from '../../utils/security';
 import {
@@ -97,6 +107,8 @@ interface DesignCanvasProps {
   onSetConnectingSource: (src: { nodeId: string; portId?: string } | null) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
   onZoomChange: (zoom: number) => void;
+  /** Preferred: single atomic zoom+pan update (wheel zoom). Falls back to onPanChange+onZoomChange. */
+  onViewportChange?: (next: { zoom: number; pan: { x: number; y: number } }) => void;
   onOpenDeepInspect: (id: string) => void;
   onAddRoom: (room: Omit<Room, 'id'>) => void;
   onDeleteSelected: () => void;
@@ -156,6 +168,7 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
   onSetConnectingSource,
   onPanChange,
   onZoomChange,
+  onViewportChange,
   onOpenDeepInspect,
   onAddRoom,
   onDeleteSelected,
@@ -389,37 +402,17 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
     return m;
   }, [project.nodes]);
 
-  const floorplanRackNodes = useMemo(() => {
-    return project.nodes.filter(n => !n.hidden && n.type === 'rack' && n.diagramMode === 'floorplan');
-  }, [project.nodes]);
-
-  const visibleNodes = useMemo(() => {
-    const raw = project.nodes.filter(n => {
-      if (n.hidden) return false;
-      if (['floorplan', 'cctv', 'wifi', 'fiber'].includes(project.activeMode)) {
-        if (n.floorId && project.activeFloorId && n.floorId !== project.activeFloorId) {
-          return false;
-        }
-        if (isRackMountedTopologyShadowNode(n, project.assets, floorplanRackNodes, project.racks)) {
-          return false;
-        }
-      }
-      if (project.activeMode === 'rack') {
-        return n.diagramMode === 'rack' || n.type === 'rack';
-      }
-      return true;
-    });
-    if (project.activeMode === 'rack') {
-      const rackNodes = raw.filter(
-        n => n.type === 'rack' || (n.assetId && project.assets[n.assetId]?.category === 'rack')
-      );
-      const nonRackNodes = raw.filter(
-        n => !(n.type === 'rack' || (n.assetId && project.assets[n.assetId]?.category === 'rack'))
-      );
-      return [...layoutRackNodesForElevationMode(rackNodes, project.racks), ...nonRackNodes];
-    }
-    return raw;
-  }, [project.nodes, project.activeMode, project.activeFloorId, project.assets, project.racks, floorplanRackNodes]);
+  const visibleNodes = useMemo(
+    () =>
+      computeVisibleNodes({
+        nodes: project.nodes,
+        assets: project.assets,
+        racks: project.racks,
+        activeMode: project.activeMode,
+        activeFloorId: project.activeFloorId
+      }),
+    [project.nodes, project.activeMode, project.activeFloorId, project.assets, project.racks]
+  );
 
   const hiddenLayerSet = useMemo(
     () => new Set(project.settings.hiddenLayers || []),
@@ -431,22 +424,15 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
     [project.settings.lockedLayers]
   );
 
-  const visibleRackNodes = useMemo(() => {
-    if (hiddenLayerSet.has('racks')) return [];
-    return visibleNodes.filter(
-      n => n.type === 'rack' || (n.assetId && project.assets[n.assetId]?.category === 'rack')
-    );
-  }, [visibleNodes, project.assets, hiddenLayerSet]);
+  const visibleRackNodes = useMemo(
+    () => computeVisibleRackNodes(visibleNodes, project.assets, project.settings.hiddenLayers),
+    [visibleNodes, project.assets, project.settings.hiddenLayers]
+  );
 
-  const visibleDeviceNodes = useMemo(() => {
-    return visibleNodes.filter(n => {
-      if (n.type === 'rack' || (n.assetId && project.assets[n.assetId]?.category === 'rack')) {
-        return false;
-      }
-      const layer = resolveNodeLayer(n, project.assets);
-      return !hiddenLayerSet.has(layer);
-    });
-  }, [visibleNodes, project.assets, hiddenLayerSet]);
+  const visibleDeviceNodes = useMemo(
+    () => computeVisibleDeviceNodes(visibleNodes, project.assets, project.settings.hiddenLayers),
+    [visibleNodes, project.assets, project.settings.hiddenLayers]
+  );
 
   const visibleCableTrays = useMemo(() => {
     if (hiddenLayerSet.has('trays') || project.activeMode === 'rack') return [];
@@ -502,17 +488,16 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
     );
   }, [project.racks, project.assets]);
 
-  const visibleRooms = useMemo(() => {
-    if (hiddenLayerSet.has('rooms')) return [];
-    return project.rooms.filter(r => {
-      if (['floorplan', 'cctv', 'wifi', 'fiber'].includes(project.activeMode)) {
-        if (r.floorId && project.activeFloorId && r.floorId !== project.activeFloorId) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [project.rooms, project.activeMode, project.activeFloorId, hiddenLayerSet]);
+  const visibleRooms = useMemo(
+    () =>
+      computeVisibleRooms({
+        rooms: project.rooms,
+        activeMode: project.activeMode,
+        activeFloorId: project.activeFloorId,
+        hiddenLayers: project.settings.hiddenLayers
+      }),
+    [project.rooms, project.activeMode, project.activeFloorId, project.settings.hiddenLayers]
+  );
 
   const groupBounds = useMemo(() => {
     const groups = new Map<string, { minX: number; minY: number; maxX: number; maxY: number; count: number }>();
@@ -538,40 +523,22 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
     return Array.from(groups.entries()).filter(([, b]) => b.count >= 2);
   }, [visibleDeviceNodes]);
 
-  const getNodeEffectiveRect = useCallback((nodeId: string): { x: number; y: number; width: number; height: number } | null => {
-    const visibleDirect = visibleNodes.find(n => n.id === nodeId);
-    if (visibleDirect) {
-      return { x: visibleDirect.x, y: visibleDirect.y, width: visibleDirect.width, height: visibleDirect.height };
-    }
+  const getNodeEffectiveRect = useMemo(
+    () =>
+      createNodeRectResolver({
+        nodes: project.nodes,
+        visibleNodes,
+        visibleRackNodes,
+        assets: project.assets,
+        racks: project.racks
+      }),
+    [project.nodes, visibleNodes, visibleRackNodes, project.assets, project.racks]
+  );
 
-    const anyNode = nodeMap.get(nodeId);
-    if (anyNode?.assetId) {
-      const asset = project.assets[anyNode.assetId];
-      if (asset?.rackId && asset.rackUnitStart) {
-        const rackNode = visibleRackNodes.find(rn => resolveRackForNode(rn)?.id === asset.rackId);
-        const rack = rackNode ? resolveRackForNode(rackNode) : undefined;
-        if (rackNode && rack) {
-          const metrics = getRackCanvasMetrics(rackNode, rack.totalUnits || 42);
-          const uH = getAssetUHeight(asset);
-          const spanRect = getSlotSpanRect(asset.rackUnitStart, uH, metrics.units, metrics.slotH);
-          return {
-            x: metrics.slotsX + 2,
-            y: metrics.slotsY + spanRect.top + 1,
-            width: metrics.slotsWidth - 4,
-            height: Math.max(8, spanRect.height - 2)
-          };
-        }
-      }
-    }
-    return null;
-  }, [visibleNodes, nodeMap, project.assets, visibleRackNodes, resolveRackForNode]);
-
-  const visibleCables = useMemo(() => {
-    if (hiddenLayerSet.has('cables')) return [];
-    return project.cables.filter(c => {
-      return Boolean(getNodeEffectiveRect(c.sourceNodeId) && getNodeEffectiveRect(c.targetNodeId));
-    });
-  }, [project.cables, getNodeEffectiveRect, hiddenLayerSet]);
+  const visibleCables = useMemo(
+    () => computeVisibleCables(project.cables, getNodeEffectiveRect, project.settings.hiddenLayers),
+    [project.cables, getNodeEffectiveRect, project.settings.hiddenLayers]
+  );
 
   const clientToCanvasCoord = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -663,18 +630,19 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      const nextZoom = Math.min(Math.max(0.2, zoom * zoomFactor), 3.0);
       const rect = containerRef.current?.getBoundingClientRect();
-      if (rect && nextZoom !== zoom) {
-        // Zoom anchored at the cursor: keep the world point under the pointer fixed.
-        const cx = e.clientX - rect.left;
-        const cy = e.clientY - rect.top;
-        const worldX = (cx - pan.x) / zoom;
-        const worldY = (cy - pan.y) / zoom;
-        onPanChange({ x: cx - worldX * nextZoom, y: cy - worldY * nextZoom });
+      const anchor = rect
+        ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        : { x: 0, y: 0 };
+      const next = zoomByFactorAtPoint({ zoom, pan }, e.deltaY < 0 ? zoomInFactor : zoomOutFactor, anchor);
+      if (next.zoom !== zoom) {
+        if (onViewportChange) {
+          onViewportChange(next);
+        } else {
+          onPanChange(next.pan);
+          onZoomChange(next.zoom);
+        }
       }
-      onZoomChange(nextZoom);
     } else {
       onPanChange({
         x: pan.x - e.deltaX,
@@ -2150,15 +2118,15 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                 className="cursor-pointer"
               >
                 <rect
-                  x={-11}
-                  y={-(bundle.spanWidthPx / 2 + 4)}
-                  width={22}
-                  height={bundle.spanWidthPx + 8}
+                  x={-BUNDLE_JACKET.halfWidth}
+                  y={-(bundle.spanWidthPx / 2 + BUNDLE_JACKET.padY)}
+                  width={BUNDLE_JACKET.halfWidth * 2}
+                  height={bundle.spanWidthPx + BUNDLE_JACKET.padY * 2}
                   rx="6"
                   fill={isBundleActive ? '#dbeafe' : '#eff6ff'}
                   fillOpacity={project.settings.isDarkMode ? 0.2 : 0.85}
                   stroke={isBundleActive || hasSelectedMember ? '#2563eb' : '#60a5fa'}
-                  strokeWidth={isBundleActive ? 1.8 : 1.1}
+                  strokeWidth={isBundleActive ? BUNDLE_JACKET.stroke.active : BUNDLE_JACKET.stroke.idle}
                   strokeDasharray={isCollapsed ? 'none' : '3 2'}
                 />
                 <line
@@ -2198,6 +2166,7 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
 
           const { pathD, pts, x1, y1, x2, y2, midX, midY } = geom;
           const cableColor = normalizeCableColor(cable.color || '#0284c7');
+          const strokeW = cableStrokeWidths(normalizeCableStrokeWidth(cable.strokeWidth) ?? 1, { isSelected, isHovered });
 
           return (
             <g
@@ -2213,7 +2182,7 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
               }}
               onDoubleClick={(e) => {
                 e.stopPropagation();
-                if (!isReadOnlyMode && midX !== 0) {
+                if (!isReadOnlyMode) {
                   openInlineCableLabelEditor(cable, midX, midY);
                 }
               }}
@@ -2223,13 +2192,13 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
             >
               <path d={pathD} fill="none" stroke="transparent" strokeWidth={isBundled ? 9 : 14} />
 
-              {(isSelected || isHovered) && (
+              {strokeW.halo !== null && (
                 <path
                   d={pathD}
                   fill="none"
                   stroke={cableColor}
                   strokeOpacity={isSelected ? 0.3 : 0.18}
-                  strokeWidth={cable.strokeWidth + (isSelected ? 8 : 5)}
+                  strokeWidth={strokeW.halo}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -2239,7 +2208,7 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                 d={pathD}
                 fill="none"
                 stroke={cableColor}
-                strokeWidth={isSelected ? cable.strokeWidth + 1.5 : isHovered ? cable.strokeWidth + 0.75 : cable.strokeWidth}
+                strokeWidth={strokeW.main}
                 strokeDasharray={cable.lineStyle === 'dashed' ? '6 4' : 'none'}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -2252,10 +2221,10 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                       key={`wp_${idx}`}
                       cx={cp.x}
                       cy={cp.y}
-                      r={6}
+                      r={WAYPOINT_HANDLE.r}
                       fill="#f59e0b"
                       stroke="#ffffff"
-                      strokeWidth="2"
+                      strokeWidth={WAYPOINT_HANDLE.stroke}
                       className="cursor-move"
                       onPointerDown={(e) => {
                         e.stopPropagation();
@@ -2294,7 +2263,7 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                           }
                         }}
                       >
-                        <circle r={5} fill="#eff6ff" stroke="#2563eb" strokeWidth="1.5" strokeDasharray="2 1" />
+                        <circle r={ADD_WAYPOINT_HANDLE.r} fill="#eff6ff" stroke="#2563eb" strokeWidth={ADD_WAYPOINT_HANDLE.stroke} strokeDasharray="2 1" />
                         <text x="0" y="3" textAnchor="middle" fill="#1d4ed8" fontSize="9" fontWeight="bold">+</text>
                         <title>Kéo để thêm điểm uốn mới</title>
                       </g>
@@ -2304,10 +2273,10 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                   <circle
                     cx={x1}
                     cy={y1}
-                    r={6.5}
+                    r={ENDPOINT_HANDLE.r}
                     fill="#10b981"
                     stroke="#ffffff"
-                    strokeWidth="2"
+                    strokeWidth={ENDPOINT_HANDLE.stroke}
                     className="cursor-crosshair"
                     onPointerDown={(e) => {
                       e.stopPropagation();
@@ -2320,10 +2289,10 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                   <circle
                     cx={x2}
                     cy={y2}
-                    r={6.5}
+                    r={ENDPOINT_HANDLE.r}
                     fill="#06b6d4"
                     stroke="#ffffff"
-                    strokeWidth="2"
+                    strokeWidth={ENDPOINT_HANDLE.stroke}
                     className="cursor-crosshair"
                     onPointerDown={(e) => {
                       e.stopPropagation();
@@ -2341,15 +2310,15 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
         {!hiddenLayerSet.has('labels') && !hiddenLayerSet.has('cable_labels') && cableBundleLayout.bundles.map(bundle => {
           const isBundleActive = activeBundleId === bundle.bundleId;
           const isCollapsed = collapsedBundleIds.has(bundle.bundleId);
-          const colorDots = (bundle.distinctColors || [bundle.primaryColor]).slice(0, 4);
-          const dotsW = colorDots.length * 7 + 4;
-          const badgeW = Math.max(82, bundle.summaryLabel.length * 5.8 + 14 + dotsW);
-          const labelYOffset = -(bundle.spanWidthPx / 2 + 17);
+          const colorDots = (bundle.distinctColors || [bundle.primaryColor]).slice(0, BUNDLE_BADGE.maxDots);
+          const dotsW = bundleDotsWidth(colorDots.length);
+          const badgeGeom = bundleBadgeGeometry(bundle);
+          const badgeW = badgeGeom.width;
 
           return (
             <g
               key={`badge_${bundle.bundleId}`}
-              transform={`translate(${bundle.midPoint.x}, ${bundle.midPoint.y + labelYOffset})`}
+              transform={`translate(${badgeGeom.cx}, ${badgeGeom.cy})`}
               onClick={(e) => {
                 e.stopPropagation();
                 setActiveBundleId(prev => (prev === bundle.bundleId ? null : bundle.bundleId));
@@ -2358,18 +2327,18 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
             >
               <rect
                 x={-badgeW / 2}
-                y={-9.5}
+                y={-badgeGeom.height / 2}
                 width={badgeW}
-                height={19}
+                height={badgeGeom.height}
                 rx="4"
                 fill={isBundleActive ? '#1d4ed8' : isCollapsed ? '#0f172a' : '#ffffff'}
                 stroke={isBundleActive ? '#1e40af' : bundle.primaryColor}
-                strokeWidth="1.3"
+                strokeWidth={badgeGeom.strokeWidth}
               />
               {colorDots.map((cColor, idx) => (
                 <circle
                   key={`bdot_${idx}`}
-                  cx={-badgeW / 2 + 9 + idx * 7}
+                  cx={-badgeW / 2 + 9 + idx * BUNDLE_BADGE.dotStep}
                   cy={0}
                   r="2.6"
                   fill={cColor}
@@ -2408,23 +2377,29 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
               }
 
               const geom = getCableGeometry(cable);
-              if (!geom || geom.midX === 0 || editingCableLabel?.cableId === cable.id) {
+              if (!geom || editingCableLabel?.cableId === cable.id) {
                 return null;
               }
 
               const cableColor = normalizeCableColor(cable.color || '#0284c7');
               const hasCustomLabel = Boolean(cable.label && cable.label.trim().length > 0);
-              const showBadge =
-                (project.settings.showCableCodes || hasCustomLabel) &&
-                (!isBundled || isSelected || isHovered || hasCustomLabel);
+              const presentation = resolveCableLabelPresentation({
+                isSelected,
+                isHovered,
+                isBundled,
+                isReadOnly: isReadOnlyMode,
+                isEditingLabel: false, // the editing cable already returned null above
+                showCableCodes: Boolean(project.settings.showCableCodes),
+                hasCustomLabel
+              });
 
               const lt = resolveCableLabelTransform(cable, {
                 midPoint: { x: geom.midX, y: geom.midY },
                 midAngleDeg: geom.midAngleDeg
               });
 
-              if (!showBadge) {
-                if (!isSelected || isBundled || isReadOnlyMode) return null;
+              if (presentation === 'none') return null;
+              if (presentation === 'add-button') {
                 return (
                   <g
                     key={`lbl_add_${cable.id}`}
@@ -2436,14 +2411,14 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                     className="cursor-text"
                   >
                     <rect
-                      x="-38"
-                      y="-10"
-                      width="76"
-                      height="20"
+                      x={-ADD_LABEL_BOX.width / 2}
+                      y={-ADD_LABEL_BOX.height / 2}
+                      width={ADD_LABEL_BOX.width}
+                      height={ADD_LABEL_BOX.height}
                       rx="4"
                       fill="#f8fafc"
                       stroke={cableColor}
-                      strokeWidth="1.1"
+                      strokeWidth={ADD_LABEL_BOX.stroke}
                       strokeDasharray="3 2"
                     />
                     <text
@@ -2493,14 +2468,16 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
                     fill="#ffffff"
                     fillOpacity={isSelected ? 0.99 : 0.95}
                     stroke={cableColor}
-                    strokeWidth={isSelected ? 1.8 : 1.1}
-                    filter={isSelected ? 'drop-shadow(0 2px 5px rgba(37,99,235,0.22))' : 'drop-shadow(0 1px 2px rgba(15,23,42,0.10))'}
+                    strokeWidth={isSelected ? LABEL_STROKE.selected : LABEL_STROKE.idle}
+                    filter={dropShadowCss(isSelected ? LABEL_SHADOW.selected : LABEL_SHADOW.idle)}
                   />
                   <circle cx={dotCx} cy="0" r={dotR} fill={cableColor} />
                   <text
                     x={textOffsetX}
                     y={lt.fontSize * 0.35}
                     textAnchor="middle"
+                    textLength={cableLabelTextLength(lt.text.length, lt.fontSize, lt.badgeWidth)}
+                    lengthAdjust="spacingAndGlyphs"
                     fill="#0f172a"
                     fontSize={lt.fontSize}
                     fontWeight={hasCustomLabel ? '700' : '600'}

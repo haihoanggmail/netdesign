@@ -28,6 +28,29 @@ export interface Capture3DResult {
   background: Capture3DBackground;
 }
 
+export interface Scene3DCameraPose {
+  position: [number, number, number];
+  target: [number, number, number];
+}
+
+/**
+ * Bản chụp toàn bộ cảnh Three.js (JSON) để đóng gói vào file HTML độc lập,
+ * cho phép người xem xoay / zoom / pan nhiều hướng ngoài phần mềm.
+ */
+export interface Scene3DSnapshot {
+  /** Kết quả của THREE.Scene#toJSON() (đã bỏ environment/background/fog vì không serialize được). */
+  sceneJson: Record<string, unknown>;
+  isDark: boolean;
+  background: number;
+  fogDensity: number;
+  environmentIntensity: number;
+  toneMappingExposure: number;
+  camera: { fov: number; near: number; far: number; minDistance: number; maxDistance: number; maxPolarAngle: number };
+  presets: Record<CameraPresetId, Scene3DCameraPose>;
+  /** Tên đối tượng trong cảnh đã được chụp (dùng để hiển thị thống kê). */
+  stats: { devices: number; racks: number; cables: number };
+}
+
 export interface View3DDisplayOptions {
   showAxes: boolean;
   explodeSpread: number;
@@ -43,6 +66,11 @@ export interface Network3DSceneHandle {
   zoomOut: () => void;
   resetZoom: () => void;
   isContextLost: () => boolean;
+  exportSceneSnapshot: () => Scene3DSnapshot;
+  /** Tâm vùng nhìn hiện tại của camera 3D, quy đổi về toạ độ canvas 2D (để thêm thiết bị vào giữa khung nhìn). */
+  getCanvasCenter: () => { x: number; y: number } | null;
+  /** Quy đổi điểm trên màn hình (clientX/Y) sang toạ độ canvas 2D trên mặt sàn 3D (dùng cho kéo thả). */
+  clientToCanvasPoint: (clientX: number, clientY: number) => { x: number; y: number } | null;
 }
 
 interface Viewport2DHandlers {
@@ -50,6 +78,7 @@ interface Viewport2DHandlers {
   zoomOut: () => void;
   resetZoom: () => void;
   fitToScreen: () => void;
+  zoomToSelection?: () => void;
   getViewportSnapshot: () => {
     pan: { x: number; y: number };
     zoom: number;
@@ -76,10 +105,13 @@ interface ViewportContextValue {
   zoomOut: () => void;
   resetZoom: () => void;
   fitToScreen: () => void;
+  zoomToSelection: () => void;
   register3DHandle: (handle: Network3DSceneHandle | null) => void;
   setIs3DContextLost: (lost: boolean) => void;
   clear3DCaptureError: () => void;
   capture3DImage: (options?: Capture3DRequestOptions) => Promise<Capture3DResult>;
+  capture3DScene: () => Scene3DSnapshot;
+  get3DCanvasCenter: () => { x: number; y: number } | null;
   update2DHandlers: (handlers: Viewport2DHandlers) => void;
 }
 
@@ -212,6 +244,10 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
     }
   }, [mode]);
 
+  const zoomToSelection = useCallback(() => {
+    if (mode === '2d') handlers2DRef.current?.zoomToSelection?.();
+  }, [mode]);
+
   const setCameraPreset = useCallback((preset: CameraPresetId) => {
     setView3DOptions(prev => ({ ...prev, activePreset: preset }));
     handle3DRef.current?.setCameraPreset(preset);
@@ -261,6 +297,26 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
     [is3DContextLost]
   );
 
+  const capture3DScene = useCallback((): Scene3DSnapshot => {
+    const handle = handle3DRef.current;
+    if (!handle) {
+      throw new Error(
+        'Không thể xuất HTML 3D vì không gian 3D chưa sẵn sàng. Vui lòng chuyển sang chế độ 3D trước khi xuất.'
+      );
+    }
+    if (handle.isContextLost() || is3DContextLost) {
+      throw new Error(
+        'WebGL Context của khung nhìn 3D đang bị mất hoặc tạm gián đoạn. Vui lòng khôi phục khung nhìn 3D rồi thử lại.'
+      );
+    }
+    return handle.exportSceneSnapshot();
+  }, [is3DContextLost]);
+
+  const get3DCanvasCenter = useCallback(
+    () => handle3DRef.current?.getCanvasCenter() ?? null,
+    []
+  );
+
   const value = useMemo<ViewportContextValue>(
     () => ({
       mode,
@@ -281,10 +337,13 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
       zoomOut,
       resetZoom,
       fitToScreen,
+      zoomToSelection,
       register3DHandle,
       setIs3DContextLost,
       clear3DCaptureError,
       capture3DImage,
+      capture3DScene,
+      get3DCanvasCenter,
       update2DHandlers
     }),
     [
@@ -303,9 +362,12 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
       zoomOut,
       resetZoom,
       fitToScreen,
+      zoomToSelection,
       register3DHandle,
       clear3DCaptureError,
       capture3DImage,
+      capture3DScene,
+      get3DCanvasCenter,
       update2DHandlers
     ]
   );

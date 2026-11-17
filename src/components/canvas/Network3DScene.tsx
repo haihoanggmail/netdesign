@@ -80,6 +80,8 @@ interface Network3DSceneProps {
   activeTool?: CanvasTool;
   isReadOnlyMode?: boolean;
   isSceneDragLocked?: boolean;
+  /** Thả thiết bị từ thư viện vào cảnh 3D (chỉ khi đã mở khóa 3D). x/y là toạ độ canvas 2D. */
+  onDropDevice?: (presetName: string, x: number, y: number) => void;
   view3DOptions?: View3DDisplayOptions;
   onChangeView3DOptions?: React.Dispatch<React.SetStateAction<View3DDisplayOptions>>;
   onContextLostChange?: (lost: boolean) => void;
@@ -182,12 +184,35 @@ const _dragHitPoint = new THREE.Vector3();
 const _planeNormal = new THREE.Vector3(0, 1, 0);
 const _camRotMatrix = new THREE.Matrix4();
 
+function projectClientToCanvas(
+  refs: { renderer: THREE.WebGLRenderer; camera: THREE.Camera; controls: { target: THREE.Vector3 }; origin: WorldCoordinateOrigin },
+  clientX: number,
+  clientY: number
+): { x: number; y: number } | null {
+  const rect = refs.renderer.domElement.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const ndc = new THREE.Vector2(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -(((clientY - rect.top) / rect.height) * 2 - 1)
+  );
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(ndc, refs.camera);
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -refs.controls.target.y);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(plane, hit)) return null;
+  return {
+    x: Math.round(hit.x / WORLD_SCALE + refs.origin.centerX),
+    y: Math.round(hit.z / WORLD_SCALE + refs.origin.centerY)
+  };
+}
+
 export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DSceneProps>(({
   project,
   selection,
   activeTool = 'select',
   isReadOnlyMode = false,
   isSceneDragLocked = true,
+  onDropDevice,
   view3DOptions: externalViewOptions,
   onChangeView3DOptions,
   onContextLostChange,
@@ -694,6 +719,20 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
         refs.camera.position.copy(refs.controls.target).add(dir);
         refs.controls.update();
         refs.requestRender();
+      },
+      getCanvasCenter: () => {
+        const refs = sceneRefs.current;
+        if (!refs) return null;
+        const t = refs.controls.target;
+        return {
+          x: Math.round(t.x / WORLD_SCALE + refs.origin.centerX),
+          y: Math.round(t.z / WORLD_SCALE + refs.origin.centerY)
+        };
+      },
+      clientToCanvasPoint: (clientX: number, clientY: number) => {
+        const refs = sceneRefs.current;
+        if (!refs) return null;
+        return projectClientToCanvas(refs, clientX, clientY);
       },
       isContextLost: () => {
         const refs = sceneRefs.current;
@@ -1833,7 +1872,28 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
   return (
     <div ref={rootRef} className="w-full h-full relative overflow-hidden bg-slate-950 select-none">
       {/* Dedicated WebGL Mount Container */}
-      <div ref={mountRef} className="w-full h-full relative" />
+      <div
+        ref={mountRef}
+        className="w-full h-full relative"
+        data-testid="3d-drop-zone"
+        onDragOver={e => {
+          if (isSceneDragLocked || isReadOnlyMode || !onDropDevice) return;
+          if (!Array.from(e.dataTransfer.types).some(t => t === 'presetname' || t === 'text/plain')) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        }}
+        onDrop={e => {
+          if (isSceneDragLocked || isReadOnlyMode || !onDropDevice) return;
+          const presetName = e.dataTransfer.getData('presetName') || e.dataTransfer.getData('text/plain');
+          if (!presetName) return;
+          e.preventDefault();
+          const refs = sceneRefs.current;
+          if (!refs) return;
+          const pt = projectClientToCanvas(refs, e.clientX, e.clientY);
+          if (!pt) return;
+          onDropDevice(presetName, pt.x, pt.y);
+        }}
+      />
 
       {webglError && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 text-white p-6 z-30">

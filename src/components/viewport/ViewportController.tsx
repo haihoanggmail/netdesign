@@ -12,6 +12,7 @@ import {
   Map as MapIcon,
   Maximize,
   Maximize2,
+  ScanSearch,
   Minimize2,
   RotateCcw,
   Unlock,
@@ -27,6 +28,8 @@ interface ViewportControllerProps {
   containerRef: React.RefObject<HTMLElement | null>;
   project: ProjectState;
   zoom2D: number;
+  canZoomToSelection?: boolean;
+  zoomToSelectionHint?: string;
   isReadOnlyMode?: boolean;
   isZenMode: boolean;
   onToggleZenMode: () => void;
@@ -53,6 +56,8 @@ export const ViewportController: React.FC<ViewportControllerProps> = ({
   containerRef,
   project,
   zoom2D,
+  canZoomToSelection = false,
+  zoomToSelectionHint,
   isReadOnlyMode = false,
   isZenMode,
   onToggleZenMode,
@@ -86,6 +91,7 @@ export const ViewportController: React.FC<ViewportControllerProps> = ({
     zoomOut,
     resetZoom,
     fitToScreen,
+    zoomToSelection,
     view3DOptions,
     setView3DOptions,
     isCapturing3D
@@ -470,6 +476,24 @@ export const ViewportController: React.FC<ViewportControllerProps> = ({
               >
                 <Maximize className="w-3.5 h-3.5 text-[#155EEF]" />
                 <span className="hidden xl:inline">Vừa khung</span>
+              </button>
+
+              <button
+                type="button"
+                data-testid="zoom-to-selection-btn"
+                onClick={zoomToSelection}
+                disabled={is3DView || !canZoomToSelection}
+                aria-label="Phóng to đối tượng đang chọn"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+                title={
+                  is3DView
+                    ? 'Phóng to vùng chọn chỉ khả dụng ở 2D CAD'
+                    : canZoomToSelection
+                    ? zoomToSelectionHint || 'Phóng to đối tượng đang chọn'
+                    : zoomToSelectionHint || 'Chọn đối tượng để phóng to vùng chọn'
+                }
+              >
+                <ScanSearch className="w-3.5 h-3.5 text-[#155EEF]" />
               </button>
 
               <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />

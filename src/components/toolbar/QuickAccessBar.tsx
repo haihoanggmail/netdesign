@@ -225,12 +225,12 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
         {onAddDeviceFocus && !isReadOnlyMode && (
           <button
             type="button"
-            disabled={is3DView}
+            disabled={is3DView && is3DDragLocked}
             onClick={onAddDeviceFocus}
             className="h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1 whitespace-nowrap shrink-0 bg-[#155EEF]/10 hover:bg-[#155EEF]/15 text-[#155EEF] dark:text-blue-300 border border-[#155EEF]/25 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
             title={
-              is3DView
-                ? 'Thêm thiết bị từ thư viện chỉ khả dụng trong chế độ 2D CAD'
+              is3DView && is3DDragLocked
+                ? 'Mở khóa 3D (hoặc chuyển về 2D CAD) để thêm thiết bị từ thư viện'
                 : 'Tìm và thêm thiết bị từ thư viện bên trái (Ctrl+F)'
             }
           >

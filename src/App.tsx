@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
+import { getZoomSelectionBounds } from './utils/selectionBounds';
+import { fitRect, resetZoomAtCenter, zoomByFactorAtPoint, zoomInFactor, zoomOutFactor } from './utils/viewportMath';
 import { useProjectStore } from './store/useProjectStore';
 import { TopBar } from './components/topbar/TopBar';
 import { LeftLibrary } from './components/sidebar/LeftLibrary';
@@ -411,18 +413,54 @@ function AppContent({ store }: { store: ProjectStore }) {
     layout.rightWidth
   ]);
 
+  // Button zoom is anchored at the viewport centre so the diagram does not drift.
+  const applyView2D = useCallback(
+    (next: { zoom: number; pan: { x: number; y: number } }) => store.setViewportTransform(next),
+    [store.setViewportTransform]
+  );
+
   const handleZoomIn2D = useCallback(() => {
-    store.setZoom(Math.min(store.zoom + 0.15, 3.0));
-  }, [store]);
+    const { viewportSize } = getViewportSnapshot();
+    applyView2D(
+      zoomByFactorAtPoint({ zoom: store.zoom, pan: store.pan }, zoomInFactor, {
+        x: viewportSize.w / 2,
+        y: viewportSize.h / 2
+      })
+    );
+  }, [store.zoom, store.pan, getViewportSnapshot, applyView2D]);
 
   const handleZoomOut2D = useCallback(() => {
-    store.setZoom(Math.max(store.zoom - 0.15, 0.2));
-  }, [store]);
+    const { viewportSize } = getViewportSnapshot();
+    applyView2D(
+      zoomByFactorAtPoint({ zoom: store.zoom, pan: store.pan }, zoomOutFactor, {
+        x: viewportSize.w / 2,
+        y: viewportSize.h / 2
+      })
+    );
+  }, [store.zoom, store.pan, getViewportSnapshot, applyView2D]);
 
   const handleResetZoom2D = useCallback(() => {
-    store.setZoom(1);
-    store.setPan({ x: 50, y: 50 });
-  }, [store]);
+    applyView2D(resetZoomAtCenter({ zoom: store.zoom, pan: store.pan }, getViewportSnapshot().viewportSize));
+  }, [store.zoom, store.pan, getViewportSnapshot, applyView2D]);
+
+  const zoomSelectionResult = useMemo(
+    // the canvas shows waypoint handles on a selected cable unless read-only → include them so they are never cut off
+    () => getZoomSelectionBounds(store.project, store.selection, { includeEditHandles: !isReadOnlyMode, isReadOnly: isReadOnlyMode }),
+    [store.project, store.selection, isReadOnlyMode]
+  );
+  const canZoomToSelection = !viewport.is3DView && zoomSelectionResult.status === 'ok';
+  const zoomToSelectionHint =
+    zoomSelectionResult.status !== 'ok'
+      ? zoomSelectionResult.reason
+      : zoomSelectionResult.omitted > 0
+      ? `Phóng to vùng chọn (bỏ qua ${zoomSelectionResult.omitted} đối tượng không hiển thị)`
+      : undefined;
+
+  const handleZoomToSelection2D = useCallback(() => {
+    if (!zoomSelectionResult.bounds) return;
+    const { viewportSize } = getViewportSnapshot();
+    applyView2D(fitRect(zoomSelectionResult.bounds, viewportSize, { padding: 96, maxZoom: 2 }));
+  }, [zoomSelectionResult, getViewportSnapshot, applyView2D]);
 
   useEffect(() => {
     viewport.update2DHandlers({
@@ -430,6 +468,7 @@ function AppContent({ store }: { store: ProjectStore }) {
       zoomOut: handleZoomOut2D,
       resetZoom: handleResetZoom2D,
       fitToScreen: handleFitToScreen,
+      zoomToSelection: handleZoomToSelection2D,
       getViewportSnapshot
     });
   }, [
@@ -438,6 +477,7 @@ function AppContent({ store }: { store: ProjectStore }) {
     handleZoomOut2D,
     handleResetZoom2D,
     handleFitToScreen,
+    handleZoomToSelection2D,
     getViewportSnapshot
   ]);
 
@@ -779,6 +819,18 @@ function AppContent({ store }: { store: ProjectStore }) {
     x: Math.round((-store.pan.x + (canvasHostRef.current?.clientWidth || 720) * 0.45) / store.zoom),
     y: Math.round((-store.pan.y + (canvasHostRef.current?.clientHeight || 480) * 0.45) / store.zoom)
   };
+
+  // Điểm chèn thiết bị: ở 3D lấy tâm khung nhìn camera (quy về toạ độ canvas), ở 2D dùng tâm canvas
+  const resolveInsertPoint = useCallback(
+    (x: number, y: number) => {
+      if (viewport.is3DView) {
+        const c = viewport.get3DCanvasCenter();
+        if (c) return c;
+      }
+      return { x, y };
+    },
+    [viewport]
+  );
 
   const auditReport = useMemo(() => runEngineeringAudit(store.project), [store.project]);
 
@@ -1154,9 +1206,14 @@ function AppContent({ store }: { store: ProjectStore }) {
   const handleAddRack = useCallback(
     (rackName = 'Tủ Server Rack 42U') => {
       recordAction('add_rack');
-      store.addRack(rackName);
+      const c = viewport.is3DView ? viewport.get3DCanvasCenter() : null;
+      if (c) {
+        store.addRack(rackName, 42, c.x, c.y);
+      } else {
+        store.addRack(rackName);
+      }
     },
-    [recordAction, store]
+    [recordAction, store, viewport]
   );
 
   const openAuditModal = useCallback(() => {
@@ -1562,18 +1619,23 @@ function AppContent({ store }: { store: ProjectStore }) {
               <LeftLibrary
                 project={store.project}
                 is3DView={viewport.is3DView}
+                is3DDragLocked={viewport.is3DDragLocked}
                 isReadOnlyMode={isReadOnlyMode}
                 onAddDevice={(presetName, x, y) => {
-                  store.addDeviceFromCatalog(presetName, x, y);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  store.addDeviceFromCatalog(presetName, p.x, p.y);
                 }}
                 onAddCustomDevice={(preset, x, y) => {
-                  store.addCustomDevicePresetToCanvas(preset, x, y);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  store.addCustomDevicePresetToCanvas(preset, p.x, p.y);
                 }}
                 onAddTextNode={(x, y) => {
-                  store.addTextNode(x, y);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  store.addTextNode(p.x, p.y);
                 }}
                 onAddShapeNode={(kind, x, y) => {
-                  store.addShapeNode(kind, x, y);
+                  const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                  store.addShapeNode(kind, p.x, p.y);
                 }}
                 onGenerateLegend={handleGenerateLegend}
                 onAddRack={() => handleAddRack('Tủ Rack Phân Phối IDF')}
@@ -1607,21 +1669,26 @@ function AppContent({ store }: { store: ProjectStore }) {
                 <LeftLibrary
                   project={store.project}
                   is3DView={viewport.is3DView}
+                  is3DDragLocked={viewport.is3DDragLocked}
                   isReadOnlyMode={isReadOnlyMode}
                   onAddDevice={(presetName, x, y) => {
-                    store.addDeviceFromCatalog(presetName, x, y);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    store.addDeviceFromCatalog(presetName, p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
                   onAddCustomDevice={(preset, x, y) => {
-                    store.addCustomDevicePresetToCanvas(preset, x, y);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    store.addCustomDevicePresetToCanvas(preset, p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
                   onAddTextNode={(x, y) => {
-                    store.addTextNode(x, y);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    store.addTextNode(p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
                   onAddShapeNode={(kind, x, y) => {
-                    store.addShapeNode(kind, x, y);
+                    const p = resolveInsertPoint(x ?? 0, y ?? 0);
+                    store.addShapeNode(kind, p.x, p.y);
                     layout.setActiveDrawer('none');
                   }}
                   onGenerateLegend={() => {
@@ -1676,6 +1743,9 @@ function AppContent({ store }: { store: ProjectStore }) {
                   activeTool={store.activeTool}
                   isReadOnlyMode={isReadOnlyMode}
                   isSceneDragLocked={viewport.is3DDragLocked}
+                  onDropDevice={(presetName, x, y) => {
+                    store.addDeviceFromCatalog(presetName, x, y);
+                  }}
                   view3DOptions={viewport.view3DOptions}
                   onChangeView3DOptions={viewport.setView3DOptions}
                   onContextLostChange={viewport.setIs3DContextLost}
@@ -1732,6 +1802,7 @@ function AppContent({ store }: { store: ProjectStore }) {
                   onSetConnectingSource={store.setConnectingSource}
                   onPanChange={store.setPan}
                   onZoomChange={store.setZoom}
+                  onViewportChange={store.setViewportTransform}
                   onOpenDeepInspect={(id) => store.setDeepInspectId(id)}
                   onAddRoom={store.addRoom}
                   onDeleteSelected={handleDeleteSelected}
@@ -1767,6 +1838,8 @@ function AppContent({ store }: { store: ProjectStore }) {
               containerRef={canvasHostRef}
               project={store.project}
               zoom2D={store.zoom}
+              canZoomToSelection={canZoomToSelection}
+              zoomToSelectionHint={zoomToSelectionHint}
               isReadOnlyMode={isReadOnlyMode}
               isZenMode={isZenMode}
               onToggleZenMode={() => setIsZenMode(v => !v)}
@@ -2445,6 +2518,7 @@ function AppContent({ store }: { store: ProjectStore }) {
               is3DView={viewport.is3DView}
               isCapturing3D={viewport.isCapturing3D}
               onCapture3D={viewport.capture3DImage}
+              onCapture3DScene={viewport.capture3DScene}
               onClose={() => setIsExportModalOpen(false)}
               onOpenBomModal={openBomModal}
               onAfterExportRouterTree={() => recordAction('export_excel_tree')}

@@ -68,6 +68,8 @@ interface LeftLibraryProps {
   isCollapsed?: boolean;
   onToggleCollapse?: (nextCollapsed: boolean) => void;
   is3DView?: boolean;
+  /** Cảnh 3D đang khóa kéo thả. Chỉ khi mở khóa mới được thêm thiết bị trong 3D. */
+  is3DDragLocked?: boolean;
   isReadOnlyMode?: boolean;
 }
 
@@ -292,6 +294,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
   isCollapsed,
   onToggleCollapse,
   is3DView = false,
+  is3DDragLocked = true,
   isReadOnlyMode = false
 }) => {
   const [activeTab, setActiveTab] = useState<LibraryTab>('catalog');
@@ -456,8 +459,10 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
     setOpenGroups(prev => ({ ...prev, [id]: true }));
   };
 
+  const isLockedIn3D = is3DView && is3DDragLocked;
+
   const handleAddPreset = (preset: DevicePreset | CustomDevicePreset) => {
-    if (isReadOnlyMode || is3DView) return;
+    if (isReadOnlyMode || isLockedIn3D) return;
     recordRecent(preset.name);
     if ('id' in preset && onAddCustomDevice) {
       onAddCustomDevice(preset, canvasCenter.x, canvasCenter.y);
@@ -467,7 +472,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
   };
 
   const handleTriggerSymbol = (action: SymbolBlockItem['action']) => {
-    if (isReadOnlyMode || is3DView) return;
+    if (isReadOnlyMode || isLockedIn3D) return;
     switch (action) {
       case 'rack':
         onAddRack();
@@ -664,7 +669,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
     return [vendor, portPart, wattPart].filter(Boolean).join(' · ');
   };
 
-  const isInsertBlocked = is3DView || isReadOnlyMode;
+  const isInsertBlocked = isLockedIn3D || isReadOnlyMode;
 
   const renderDeviceCard = (preset: DevicePreset | CustomDevicePreset) => {
     const isCustom = 'id' in preset;
@@ -674,8 +679,8 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
       : SHORT_LABELS[preset.name] || preset.name;
     const accent = getCategoryAccentColor(preset.category);
     const specLine = formatCardSpecs(preset);
-    const tooltip = is3DView
-      ? `${preset.name} — Chuyển về 2D CAD để kéo thả hoặc thêm lên bản vẽ`
+    const tooltip = isLockedIn3D
+      ? `${preset.name} — Mở khóa 3D (hoặc chuyển về 2D CAD) để kéo thả / thêm lên bản vẽ`
       : isReadOnlyMode
       ? `${preset.name} — Đang ở chế độ Chỉ xem`
       : `${preset.name}\n${preset.vendor} · ${preset.model}\n${preset.defaultPorts.length} cổng · ${preset.powerWatts}W\nKéo thả vào bản vẽ hoặc nhấp đúp`;
@@ -755,7 +760,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
               onClick={() => handleAddPreset(preset)}
               aria-label={`Thêm ${preset.name}`}
               className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-[#155EEF] hover:text-white text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-600"
-              title={is3DView ? 'Chỉ thêm thiết bị trong chế độ 2D CAD' : 'Thêm vào giữa bản vẽ'}
+              title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : 'Thêm vào giữa bản vẽ'}
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -818,7 +823,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
               }}
               aria-label={`Thêm ${preset.name}`}
               className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-[#155EEF] hover:text-white text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
-              title={is3DView ? 'Chỉ thêm thiết bị trong chế độ 2D CAD' : 'Thêm nhanh lên bản vẽ'}
+              title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : 'Thêm nhanh lên bản vẽ'}
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -1010,7 +1015,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                       disabled={isInsertBlocked}
                       onClick={() => handleAddPreset(item)}
                       className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800 hover:border-[#155EEF] text-xs font-medium text-slate-700 dark:text-slate-200 truncate max-w-[116px] transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
-                      title={is3DView ? 'Chỉ thêm thiết bị trong chế độ 2D CAD' : `Thêm nhanh ${item.name}`}
+                      title={isLockedIn3D ? 'Mở khóa 3D để thêm thiết bị' : `Thêm nhanh ${item.name}`}
                     >
                       + {SHORT_LABELS[item.name] || item.name}
                     </button>
@@ -1099,8 +1104,8 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                                     disabled={isInsertBlocked}
                                     onClick={() => handleTriggerSymbol(sym.action)}
                                     title={
-                                      is3DView
-                                        ? `${sym.label} chỉ khả dụng trong chế độ 2D CAD`
+                                      isLockedIn3D
+                                        ? `${sym.label} — mở khóa 3D để thêm`
                                         : isReadOnlyMode
                                         ? 'Đang ở chế độ Chỉ xem'
                                         : sym.sub
