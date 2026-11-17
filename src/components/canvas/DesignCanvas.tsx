@@ -664,7 +664,17 @@ export const DesignCanvas: React.FC<DesignCanvasProps> = ({
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      onZoomChange(Math.min(Math.max(0.2, zoom * zoomFactor), 3.0));
+      const nextZoom = Math.min(Math.max(0.2, zoom * zoomFactor), 3.0);
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect && nextZoom !== zoom) {
+        // Zoom anchored at the cursor: keep the world point under the pointer fixed.
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const worldX = (cx - pan.x) / zoom;
+        const worldY = (cy - pan.y) / zoom;
+        onPanChange({ x: cx - worldX * nextZoom, y: cy - worldY * nextZoom });
+      }
+      onZoomChange(nextZoom);
     } else {
       onPanChange({
         x: pan.x - e.deltaX,
