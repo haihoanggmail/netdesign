@@ -1,3 +1,8 @@
+## Unreleased
+
+### Fixed
+- 3D: khi đã mở khóa, giờ có thể thêm thiết bị. Nút "Thêm thiết bị" (QuickAccessBar), thư viện thiết bị (nhấp đúp / nút +) và kéo thả vào cảnh 3D đều hoạt động. Thiết bị mới được đặt tại tâm khung nhìn camera (hoặc đúng điểm thả trên mặt sàn).
+
 # Nhật ký thay đổi (CHANGELOG)
 
 Tài liệu này ghi nhận các thay đổi quan trọng của **HACHIHI Network & Electrical Designer** theo chuẩn [Keep a Changelog](https://keepachangelog.com/vi/1.0.0/) và đánh số phiên bản theo [SemVer](https://semver.org/).
