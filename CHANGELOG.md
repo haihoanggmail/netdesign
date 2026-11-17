@@ -6,6 +6,10 @@ Tài liệu này ghi nhận các thay đổi quan trọng của **HACHIHI Networ
 
 ### Thay đổi
 - **Gom nút điều khiển trùng lặp**: "Phân lớp tự động" chỉ còn một vị trí chính trong menu Lớp thống nhất (`LayerPanel`); gỡ bản trùng ở menu `TopBar`, menu Nâng cao của `QuickAccessBar` và bảng thuộc tính thiết bị (lệnh vẫn gọi được từ Command Palette). Ngăn kéo di động chỉ giữ một nút chuyển 2D/3D ở chế độ 2D; ở 3D dùng nút "Về 2D CAD" trên thanh nổi.
+- **Zoom 2D theo con trỏ chuột**: Ctrl/Cmd + cuộn giữ cố định điểm bản vẽ dưới con trỏ thay vì trượt về gốc.
+
+### Kiểm thử
+- Thêm `e2e/viewport-ux.spec.ts` (nút 2D/3D duy nhất, chuyển 2D↔3D, zoom, phạm vi xuất 3D).
 
 ## [3.1.1] - 2026-11-16
 
