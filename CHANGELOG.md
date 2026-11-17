@@ -1,7 +1,7 @@
 ## Unreleased
 
 ### Fixed
-- 3D: khi đã mở khóa, giờ có thể thêm thiết bị. Nút "Thêm thiết bị" (QuickAccessBar), thư viện thiết bị (nhấp đúp / nút +) và kéo thả vào cảnh 3D đều hoạt động. Thiết bị mới được đặt tại tâm khung nhìn camera (hoặc đúng điểm thả trên mặt sàn).
+- 3D: thêm thiết bị bằng kéo thả từ thư viện vào cảnh 3D (thả lên rack thì lắp vào rack), nút Thêm thiết bị và nhấp đúp hoạt động giống 2D, không phụ thuộc khóa kéo 3D.
 
 # Nhật ký thay đổi (CHANGELOG)
 
