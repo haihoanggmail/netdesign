@@ -1,6 +1,8 @@
 ## Unreleased
 
 ### Fixed
+- 3D: điểm thả/chèn tính trên sàn của tầng đang chọn (kể cả chế độ cắt lớp nhiều tầng); rack thêm ở 3D cũng được đặt theo tâm khung nhìn.
+- 2D/3D đồng nhất: 3D dùng chung bộ quy tắc hiển thị (visibilityResolver) với 2D; gốc toạ độ 3D được giữ cố định nên thêm/di chuyển thiết bị không làm cả cảnh bị trượt; điểm thả/chèn ở 3D quy đổi từ tâm sang góc trên-trái nên vị trí khớp với 2D.
 - 3D: thêm thiết bị bằng kéo thả từ thư viện vào cảnh 3D (thả lên rack thì lắp vào rack), nút Thêm thiết bị và nhấp đúp hoạt động giống 2D, không phụ thuộc khóa kéo 3D.
 
 # Nhật ký thay đổi (CHANGELOG)
