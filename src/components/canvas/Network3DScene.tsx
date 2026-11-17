@@ -21,6 +21,7 @@ import {
 import type {
   CameraPresetId,
   Network3DSceneHandle,
+  Scene3DCameraPose,
   View3DDisplayOptions
 } from '../../contexts/ViewportContext';
 import {
@@ -53,6 +54,7 @@ import {
   World3DBounds,
   WorldCoordinateOrigin
 } from './three/proceduralDevices';
+import { assertSceneBudget, BudgetScene } from '../../services/export/sceneBudget';
 import { isRackMountedTopologyShadowNode } from '../../utils/rackGeometry';
 import {
   Box,
@@ -702,6 +704,92 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
           return true;
         }
       },
+      exportSceneSnapshot: () => {
+        const refs = sceneRefs.current;
+        if (!refs) {
+          throw new Error('Không thể xuất HTML 3D vì WebGL Scene chưa được khởi tạo.');
+        }
+        const { scene, axesGroup, connectPreviewLine, renderer } = refs;
+        // Từ chối sớm cảnh quá lớn TRƯỚC khi scene.toJSON() (bước tốn bộ nhớ nhất).
+        assertSceneBudget(scene as unknown as BudgetScene);
+        const prevEnv = scene.environment;
+        const prevBg = scene.background;
+        const prevFog = scene.fog;
+        const prevAxes = axesGroup.visible;
+        const prevPreview = connectPreviewLine.visible;
+        const isDark = projectRef.current.settings.isDarkMode;
+        const bgColor = prevBg instanceof THREE.Color ? prevBg.getHex() : isDark ? 0x0b1120 : 0xeef4fb;
+        const fogDensity = prevFog instanceof THREE.FogExp2 ? prevFog.density : 0.0085;
+        let sceneJson: Record<string, unknown>;
+        try {
+          // Texture PMREM / fog không serialize được -> viewer tự dựng lại từ các tham số bên dưới.
+          scene.environment = null;
+          scene.background = null;
+          scene.fog = null;
+          axesGroup.visible = false;
+          connectPreviewLine.visible = false;
+          // Bỏ vòng chọn / huy hiệu khóa khỏi bản xuất.
+          const hidden: THREE.Object3D[] = [];
+          scene.traverse(o => {
+            if (
+              o.visible &&
+              (o.name === 'selection_ring' ||
+                o.name === 'locked_indicator_ring' ||
+                o.name === 'locked_rim_frame' ||
+                o.name === 'locked_padlock_sprite')
+            ) {
+              o.visible = false;
+              hidden.push(o);
+            }
+          });
+          try {
+            sceneJson = scene.toJSON() as unknown as Record<string, unknown>;
+          } finally {
+            hidden.forEach(o => {
+              o.visible = true;
+            });
+          }
+        } finally {
+          scene.environment = prevEnv;
+          scene.background = prevBg;
+          scene.fog = prevFog;
+          axesGroup.visible = prevAxes;
+          connectPreviewLine.visible = prevPreview;
+          refs.requestRender();
+        }
+
+        const presets = {} as Record<CameraPresetId, Scene3DCameraPose>;
+        (['iso', 'top', 'front', 'side'] as CameraPresetId[]).forEach(id => {
+          const pose = computePoseForPreset(refs.worldBounds, id);
+          presets[id] = {
+            position: [pose.camPos.x, pose.camPos.y, pose.camPos.z],
+            target: [pose.target.x, pose.target.y, pose.target.z]
+          };
+        });
+
+        return {
+          sceneJson,
+          isDark,
+          background: bgColor,
+          fogDensity,
+          environmentIntensity: isDark ? 0.7 : 0.85,
+          toneMappingExposure: renderer.toneMappingExposure,
+          camera: {
+            fov: refs.camera.fov,
+            near: refs.camera.near,
+            far: refs.camera.far,
+            minDistance: refs.controls.minDistance,
+            maxDistance: refs.controls.maxDistance,
+            maxPolarAngle: refs.controls.maxPolarAngle
+          },
+          presets,
+          stats: {
+            devices: visibleCountSummary.devices,
+            racks: visibleCountSummary.racks,
+            cables: visibleCountSummary.cables
+          }
+        };
+      },
       captureImage: async (reqOpts) => {
         const refs = sceneRefs.current;
         if (!refs) {
@@ -827,7 +915,7 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
         }
       }
     }),
-    [applyCameraPreset, computePoseForPreset]
+    [applyCameraPreset, computePoseForPreset, visibleCountSummary]
   );
 
   // Initialize WebGL Scene once
