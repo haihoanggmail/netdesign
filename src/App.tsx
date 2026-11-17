@@ -830,7 +830,12 @@ function AppContent({ store }: { store: ProjectStore }) {
   const resolveInsertPoint = useCallback(
     (x: number, y: number, size?: { width?: number; height?: number }) => {
       if (viewport.is3DView) {
-        const c = viewport.get3DCanvasCenter();
+        let c: { x: number; y: number } | null = null;
+        try {
+          c = viewport.get3DCanvasCenter();
+        } catch (err) {
+          console.error('[3D] Không lấy được tâm khung nhìn:', err);
+        }
         if (c) {
           // Toạ độ node là góc trên-trái; 3D cho điểm tâm -> lùi nửa kích thước để thiết bị nằm đúng tâm khung nhìn
           return {
@@ -1680,10 +1685,14 @@ function AppContent({ store }: { store: ProjectStore }) {
             <>
               <div
                 onClick={() => layout.setActiveDrawer('none')}
-                className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] no-print"
+                className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] no-print ${draggedPresetName ? 'opacity-0 pointer-events-none' : ''}`}
                 aria-hidden="true"
               />
-              <div className="fixed inset-y-0 left-0 z-40 pt-safe pb-safe shadow-2xl no-print">
+              <div
+                className={`fixed inset-y-0 left-0 z-40 pt-safe pb-safe shadow-2xl no-print ${
+                  draggedPresetName ? 'opacity-0 pointer-events-none' : ''
+                }`}
+              >
                 <LeftLibrary
                   project={store.project}
                   is3DView={viewport.is3DView}
@@ -1719,9 +1728,9 @@ function AppContent({ store }: { store: ProjectStore }) {
                     layout.setActiveDrawer('none');
                   }}
                   onDragPresetChange={name => {
+                    // Khi đang kéo, ngăn kéo chỉ ẩn đi (không gỡ khỏi DOM để khỏi hủy thao tác kéo); kéo xong thì đóng.
                     setDraggedPresetName(name);
-                    // Ngăn kéo thư viện che khung vẽ: đóng lại (hoãn 1 nhịp để không hủy thao tác kéo)
-                    if (name) window.setTimeout(() => layout.setActiveDrawer('none'), 0);
+                    if (!name) layout.setActiveDrawer('none');
                   }}
                   canvasCenter={canvasCenter}
                   widthPx={296}
@@ -1768,15 +1777,27 @@ function AppContent({ store }: { store: ProjectStore }) {
                   draggedPresetName={draggedPresetName}
                   onDropDevice={(presetName, x, y) => {
                     // x/y là điểm thả (tâm) trên sàn 3D -> đổi sang góc trên-trái như 2D để vị trí khớp hai chế độ
-                    const size = getPresetSize(presetName);
-                    store.addDeviceFromCatalog(
-                      presetName,
-                      Math.max(10, x - (size.width ?? 0) / 2),
-                      Math.max(10, y - (size.height ?? 0) / 2)
-                    );
+                    try {
+                      const size = getPresetSize(presetName);
+                      store.addDeviceFromCatalog(
+                        presetName,
+                        Math.max(10, x - (size.width ?? 0) / 2),
+                        Math.max(10, y - (size.height ?? 0) / 2)
+                      );
+                      showToast(`Đã thêm "${presetName}" vào cảnh 3D`, 'success', 1600);
+                    } catch (err) {
+                      console.error('[3D] Thả thiết bị thất bại:', err);
+                      showToast('Không thể thêm thiết bị vào cảnh 3D (xem Console để biết chi tiết).', 'error', 4000);
+                    }
                   }}
                   onDropDeviceIntoRack={(presetName, rackId, preferredU) => {
-                    store.addDeviceFromCatalogToRack(presetName, rackId, preferredU);
+                    try {
+                      store.addDeviceFromCatalogToRack(presetName, rackId, preferredU);
+                      showToast(`Đã lắp "${presetName}" vào tủ rack`, 'success', 1600);
+                    } catch (err) {
+                      console.error('[3D] Lắp thiết bị vào rack thất bại:', err);
+                      showToast('Không thể lắp thiết bị vào tủ rack (xem Console để biết chi tiết).', 'error', 4000);
+                    }
                   }}
                   view3DOptions={viewport.view3DOptions}
                   onChangeView3DOptions={viewport.setView3DOptions}
