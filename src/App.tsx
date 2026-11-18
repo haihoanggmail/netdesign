@@ -2395,6 +2395,7 @@ function AppContent({ store }: { store: ProjectStore }) {
             isSaving={store.isSaving}
             storageError={store.storageError}
             auditIssueCount={auditReport.issues.length}
+            onOpenAudit={openAuditModal}
             onOpenAbout={() => setIsAboutModalOpen(true)}
             onToggleSnap={handleToggleSnap}
             onToggleGrid={handleToggleGrid}

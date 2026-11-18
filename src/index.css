@@ -16,6 +16,14 @@
     --hachihi-warning: #D97706;
     --hachihi-danger: #DC2626;
     --hachihi-neutral: #64748B;
+    --hachihi-info: #155EEF;
+    /* Màu trạng thái kỹ thuật: nền nhạt + chữ đậm để đọc rõ cả sáng/tối */
+    --hachihi-success-bg: #DCFCE7;
+    --hachihi-warning-bg: #FEF3C7;
+    --hachihi-danger-bg: #FEE2E2;
+    --hachihi-info-bg: #DBEAFE;
+    --hachihi-scroll-thumb: #CBD5E1;
+    --hachihi-scroll-thumb-hover: #94A3B8;
   }
 
   .dark {
@@ -28,6 +36,16 @@
     --hachihi-border: #1E293B;
     --hachihi-text: #F8FAFC;
     --hachihi-text-muted: #94A3B8;
+    --hachihi-success: #4ADE80;
+    --hachihi-warning: #FBBF24;
+    --hachihi-danger: #F87171;
+    --hachihi-info: #60A5FA;
+    --hachihi-success-bg: rgba(34, 197, 94, 0.16);
+    --hachihi-warning-bg: rgba(245, 158, 11, 0.16);
+    --hachihi-danger-bg: rgba(239, 68, 68, 0.16);
+    --hachihi-info-bg: rgba(59, 130, 246, 0.16);
+    --hachihi-scroll-thumb: #475569;
+    --hachihi-scroll-thumb-hover: #64748B;
   }
 
   html,
@@ -64,6 +82,29 @@
     outline: 2px solid var(--hachihi-primary);
     outline-offset: 2px;
   }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  ::selection {
+    background: rgba(21, 94, 239, 0.22);
+  }
+
+  /* Ô nhập liệu vẫn chọn/sao chép được văn bản dù body đặt user-select: none */
+  input,
+  textarea,
+  [contenteditable='true'] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 }
 
 @layer components {
@@ -79,6 +120,41 @@
   .ent-btn-primary {
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-[#155EEF] hover:bg-[#124CC7] disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-semibold transition-colors whitespace-nowrap shrink-0;
   }
+  .ent-btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .ent-icon-btn {
+    @apply inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .ent-kbd {
+    @apply inline-flex items-center px-1.5 h-5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-[11px] text-slate-500 dark:text-slate-400;
+  }
+  .ent-section-title {
+    @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+  .ent-badge {
+    @apply inline-flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-semibold whitespace-nowrap;
+  }
+  .ent-badge-success {
+    background: var(--hachihi-success-bg);
+    color: #166534;
+  }
+  .ent-badge-warning {
+    background: var(--hachihi-warning-bg);
+    color: #92400E;
+  }
+  .ent-badge-danger {
+    background: var(--hachihi-danger-bg);
+    color: #991B1B;
+  }
+  .ent-badge-info {
+    background: var(--hachihi-info-bg);
+    color: #1E40AF;
+  }
+  .dark .ent-badge-success { color: #86EFAC; }
+  .dark .ent-badge-warning { color: #FCD34D; }
+  .dark .ent-badge-danger { color: #FCA5A5; }
+  .dark .ent-badge-info { color: #93C5FD; }
   .ent-btn-secondary {
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors whitespace-nowrap shrink-0;
   }
@@ -114,6 +190,22 @@
 
 @media (pointer: coarse) {
   .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Màn hình cảm ứng (tablet): nới vùng chạm cho thanh công cụ nhanh và thanh công cụ vẽ */
+@media (pointer: coarse) {
+  .qa-bar {
+    height: auto;
+    min-height: 48px;
+  }
+  .qa-bar button {
+    min-height: 36px;
+    min-width: 36px;
+  }
+  .tool-rail button {
     min-width: 44px;
     min-height: 44px;
   }
@@ -216,20 +308,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bfdbfe;
+  background: var(--hachihi-scroll-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #60a5fa;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: var(--hachihi-scroll-thumb-hover);
 }
 
 /* Blue & White Print Blueprint Styling */
