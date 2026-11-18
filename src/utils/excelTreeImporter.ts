@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { trackEvent } from '../services/tracker';
 import {
   Building,
   CableEdge,
@@ -719,6 +720,7 @@ async function downloadWorkbookAsXlsx(wb: ExcelJS.Workbook, fileName: string): P
 export async function downloadRouterTreeExcelTemplate() {
   const wb = buildRouterTreeTemplateWorkbook();
   await downloadWorkbookAsXlsx(wb, 'HACHIHI_Mau_So_Do_Router_Da_Tang.xlsx');
+  trackEvent('template', 'excel_router_tree');
 }
 
 const CATEGORY_HIERARCHY_RANK: Record<DeviceCategory, number> = {
@@ -944,6 +946,7 @@ export async function exportProjectRouterTreeToExcel(project: ProjectState): Pro
     .replace(/[^a-zA-Z0-9_\-\u00C0-\u024F\u1E00-\u1EFF]+/g, '_')
     .replace(/^_+|_+$/g, '');
   await downloadWorkbookAsXlsx(wb, `${safeBase || 'HACHIHI'}_Cay_Router.xlsx`);
+  trackEvent('export', 'excel_router_tree');
 }
 
 const STANDARD_TREE_COLUMN_HEADERS = [

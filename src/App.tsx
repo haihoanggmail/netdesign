@@ -8,6 +8,7 @@ import { DesignCanvas } from './components/canvas/DesignCanvas';
 import { PropertiesPanel } from './components/properties/PropertiesPanel';
 import { StatusBar } from './components/statusbar/StatusBar';
 import { QuickAccessBar } from './components/toolbar/QuickAccessBar';
+import { trackEvent, trackVisit } from './services/tracker';
 import { QUICK_TOUR_STORAGE_KEY } from './components/modals/QuickTourOverlay';
 import { DESIGN_MODES, DESIGN_MODE_GROUPS } from './utils/designModes';
 import {
@@ -246,6 +247,11 @@ function AppContent({ store }: { store: ProjectStore }) {
     setRecentActions([]);
     showToast('Đã xóa lịch sử thao tác gần đây.', 'info', 2000);
   }, [showToast]);
+
+  // Ghi 1 lượt truy cập (Google Sheet) mỗi lần tải trang — không chặn, bỏ qua mọi lỗi
+  useEffect(() => {
+    trackVisit();
+  }, []);
 
   // Check AI assistant backend configuration once on mount
   useEffect(() => {
@@ -712,6 +718,7 @@ function AppContent({ store }: { store: ProjectStore }) {
       save: () => {
         recordAction('save_now');
         void store.markSaved().then(() => {
+          trackEvent('save', 'manual');
           showToast('Đã lưu dự án vào IndexedDB!', 'success', 2200);
         });
       },
@@ -1096,6 +1103,7 @@ function AppContent({ store }: { store: ProjectStore }) {
   const handleSaveNow = useCallback(() => {
     recordAction('save_now');
     void store.markSaved().then(() => {
+      trackEvent('save', 'manual');
       showToast('Đã lưu dự án vào IndexedDB!', 'success', 2200);
     });
   }, [recordAction, store, showToast]);
@@ -2559,6 +2567,7 @@ function AppContent({ store }: { store: ProjectStore }) {
               onClose={() => setIsTemplateModalOpen(false)}
               onSelectTemplate={(tplId) => {
                 void store.loadTemplate(tplId).then(() => {
+                  trackEvent('template', `gallery:${String(tplId)}`);
                   showToast('Đã tải mẫu thiết kế thành công!', 'success');
                 });
               }}

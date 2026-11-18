@@ -1,4 +1,5 @@
 import { ProjectState } from '../types/infrastructure';
+import { trackEvent } from '../services/tracker';
 import {
   BomFilterOptions,
   computeProjectBomStats
@@ -287,6 +288,7 @@ export function exportProjectBomCsv(
   link.click();
   document.body.removeChild(link);
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  trackEvent('export', 'bom_csv');
   return {
     filename: result.filename,
     summary: result.summary
