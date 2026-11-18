@@ -4,6 +4,12 @@ Tài liệu này ghi nhận các thay đổi quan trọng của **HACHIHI Networ
 
 ## Unreleased
 
+### Thêm: ghi log sử dụng về Google Sheet (tùy chọn, mặc định tắt khi chưa đặt biến môi trường)
+- `api/track.ts` (Vercel Serverless): nhận sự kiện `visit | template | save | export`, bổ sung time (giờ VN), IP, quốc gia, thành phố từ header Vercel, rồi POST sang Apps Script bằng `URL_SHEET` + `SERECT_SHEET`. Lỗi / thiếu cấu hình / sai dữ liệu → bỏ qua, luôn trả `{ok:true}`. Có giới hạn 40 lượt/phút/IP, kiểm tra Origin, chỉ gửi tới `https://script.google.com`.
+- `apps-script/Code.gs`: so khớp secret trong Script Properties (`SERECT_SHEET`); đúng mới ghi, sai bỏ qua; tự tạo sheet `Log` + tiêu đề; chặn công thức (= + - @).
+- `src/services/tracker.ts`: gửi sự kiện không chặn, không ném lỗi, tôn trọng Do Not Track, KHÔNG gửi dữ liệu dự án. Gắn vào: mở ứng dụng, thư viện mẫu, tải Excel mẫu, lưu thủ công, xuất PNG/SVG/DXF/PDF/HTML/Excel/BOM/gói dự án (chỉ ghi khi thành công).
+- `server.ts`: thêm route `/api/track` cho chế độ dev. Không đổi dữ liệu dự án, Auto-Route, PoE/UPS/BOM, lưu/khôi phục.
+
 ### Cải thiện giao diện (v2.9 – Đợt 3, chỉ đổi trình bày/trợ năng, không đổi dữ liệu hay thuật toán)
 - Thanh công cụ vẽ (`CanvasToolRail`): có vạch ngăn 3 nhóm (Chọn/Kéo · Nối dây/Phòng/Chữ/Chú giải · Đo); `role="toolbar"`, điều hướng bằng phím ↑ ↓ Home End (chỉ chuyển tiêu điểm, không đổi công cụ); ở chế độ thu gọn có tooltip tức thì (tên + phím tắt) khi rê chuột/focus; `aria-keyshortcuts`.
 - Thanh thao tác nhanh (`QuickAccessBar`): `role="toolbar"`; `aria-keyshortcuts` cho công cụ, Hoàn tác, Làm lại, Lưu, Thêm thiết bị; nút Lưu có tên đầy đủ kể cả khi nhãn bị ẩn ở màn hình hẹp; menu Nâng cao có `aria-haspopup`/`aria-controls`, không tràn khỏi màn hình hẹp và trả tiêu điểm về nút khi nhấn Esc.

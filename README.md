@@ -33,6 +33,18 @@
 4. Bấm **Deploy**. Chế độ vẽ/dự toán chạy hoàn toàn trên trình duyệt; biến môi trường chỉ cần khi bật Trợ lý AI (xem bảng bên dưới).
 5. Trước khi đẩy lên, chạy `npm run build`, `npm test` và `npm run test:e2e` trên máy có mạng để xác nhận.
 
+## Ghi log truy cập về Google Sheet (tùy chọn)
+
+Ghi lại các cột: `time, ip, Quốc gia, Thành Phố, VisitID, SessionID, Action, detail, device, language, resolution` cho 4 hành động: `visit` (truy cập), `template` (lấy mẫu), `save` (lưu thủ công), `export` (xuất file).
+
+1. Tạo Google Sheet → **Tiện ích mở rộng → Apps Script** → dán toàn bộ `apps-script/Code.gs`.
+2. **Project Settings → Script properties** → thêm `SERECT_SHEET` = chuỗi bí mật dài, ngẫu nhiên.
+3. **Deploy → New deployment → Web app** → Execute as **Me**, Who has access **Anyone** → copy Web app URL (`.../exec`). Mỗi lần sửa code phải **Deploy → Manage deployments → New version**.
+4. Trên Vercel → **Settings → Environment Variables** thêm `URL_SHEET` (URL ở bước 3) và `SERECT_SHEET` (cùng chuỗi ở bước 2) → **Redeploy**.
+5. Secret sai, thiếu biến, hoặc bất kỳ lỗi nào → bỏ qua, ứng dụng không bị ảnh hưởng. Sheet `Log` tự tạo kèm tiêu đề ở lần ghi đầu.
+
+Ghi chú: IP/quốc gia/thành phố lấy từ header của Vercel; `VisitID` đổi mỗi lần tải trang, `SessionID` giữ trong phiên tab. Trình duyệt bật "Do Not Track" sẽ không được ghi. Bạn nên có thông báo quyền riêng tư vì IP là dữ liệu cá nhân.
+
 ## Biến môi trường (Tùy chọn cho Vercel / Full-Stack)
 
 Tất cả các biến dưới đây đều **tùy chọn** cho chế độ vẽ và dự toán offline. Khi không cấu hình, ứng dụng tự ẩn tính năng AI trực tuyến và nút Góp ý.

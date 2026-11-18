@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
+import { processTrack } from './api/track.ts';
 
 function loadLocalEnvFiles() {
   for (const filename of ['.env', '.env.local']) {
@@ -326,6 +327,16 @@ async function startServer() {
       return '3.1.1';
     }
   })();
+
+  // Ghi log truy cập về Google Sheet (cần URL_SHEET + SERECT_SHEET; thiếu hoặc lỗi thì bỏ qua)
+  app.post('/api/track', async (req, res) => {
+    await processTrack({
+      headers: req.headers,
+      body: req.body,
+      remoteAddress: req.socket.remoteAddress
+    });
+    res.json({ ok: true });
+  });
 
   app.get('/api/health', (_req, res) => {
     const apiKey = process.env.GEMINI_API_KEY?.trim();
