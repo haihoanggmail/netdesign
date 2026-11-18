@@ -4,6 +4,25 @@ Tài liệu này ghi nhận các thay đổi quan trọng của **HACHIHI Networ
 
 ## Unreleased
 
+### Cải thiện giao diện (v2.9 – Đợt 3, chỉ đổi trình bày/trợ năng, không đổi dữ liệu hay thuật toán)
+- Thanh công cụ vẽ (`CanvasToolRail`): có vạch ngăn 3 nhóm (Chọn/Kéo · Nối dây/Phòng/Chữ/Chú giải · Đo); `role="toolbar"`, điều hướng bằng phím ↑ ↓ Home End (chỉ chuyển tiêu điểm, không đổi công cụ); ở chế độ thu gọn có tooltip tức thì (tên + phím tắt) khi rê chuột/focus; `aria-keyshortcuts`.
+- Thanh thao tác nhanh (`QuickAccessBar`): `role="toolbar"`; `aria-keyshortcuts` cho công cụ, Hoàn tác, Làm lại, Lưu, Thêm thiết bị; nút Lưu có tên đầy đủ kể cả khi nhãn bị ẩn ở màn hình hẹp; menu Nâng cao có `aria-haspopup`/`aria-controls`, không tràn khỏi màn hình hẹp và trả tiêu điểm về nút khi nhấn Esc.
+- Thanh trạng thái: ô "cảnh báo kỹ thuật" nay là nút bấm mở thẳng Audit (App truyền `onOpenAudit`, dùng chung `openAuditModal` như TopBar).
+- Hộp thoại Xuất: thông báo trạng thái là vùng `role="alert"` (lỗi) / `role="status"` (thông tin); nhãn chữ 9–10px trong phần giao diện hộp thoại nâng lên 11px (KHÔNG đổi phần bản in/PDF).
+- Nút Đóng của DeepInspect (2 nơi) và nút Thu gọn của bảng Chú giải/Phòng có tên đọc được (`aria-label`, `title`).
+- `index.css`: màn hình cảm ứng (`pointer: coarse`) nới vùng chạm thanh thao tác nhanh (≥36px) và thanh công cụ vẽ (≥44px).
+- **Kiểm chứng:** xem báo cáo bàn giao — `npm run build`, Playwright E2E và `runTests.ts` CHƯA chạy được trong môi trường soạn thảo (không có `node_modules`/mạng).
+
+### Cải thiện giao diện (v2.9 – Đợt 2, chỉ đổi trình bày, không đổi dữ liệu hay thuật toán)
+- Kiểm tra kỹ thuật (Audit): lọc theo mức độ Tất cả / Lỗi / Cảnh báo (lỗi hiển thị trước, kết quả kiểm tra giữ nguyên); nhãn "Lỗi" / "Cảnh báo" và viền màu theo mức độ; chú thích cho các ô tổng hợp; bảng IP/VLAN cuộn ngang được, tiêu đề cố định, chọn hàng bằng bàn phím (Enter / Space); màu chữ rõ hơn ở chế độ tối.
+- Bảng thuộc tính: chú thích cho các tab (Chung, Mạng, Vật lý, Ghi chú; Tổng quan, Kết nối, Hiển thị, Nâng cao); tab Điện / Năng lượng báo trạng thái PoE trong chú thích; hiện "… và N cảnh báo khác" khi có hơn 3 cảnh báo; thêm tên cho nút thu gọn / đóng; nút xóa đọc rõ ở chế độ tối.
+- BOM: tiêu đề cột có `scope="col"` cho trình đọc màn hình; số liệu căn đều chữ số; màu chênh lệch / trạng thái rõ hơn ở chế độ tối.
+
+### Cải thiện giao diện (v2.9 – Đợt 1, chỉ đổi giao diện, không đổi logic)
+- `index.css`: bổ sung biến màu trạng thái kỹ thuật (thành công/cảnh báo/lỗi/thông tin) cho cả sáng và tối; thêm lớp tiện ích `ent-btn-ghost`, `ent-icon-btn`, `ent-kbd`, `ent-section-title`, `ent-badge-*`; thanh cuộn dùng cùng một bảng màu trung tính ở hai chế độ; con trỏ tay cho nút bấm được, cấm cho nút bị khóa.
+- Thư viện thiết bị: nhấn Esc để xóa nhanh từ khóa; hiện số kết quả khi đang lọc và nút "Xóa lọc"; dòng gợi ý "Kéo thả vào bản vẽ hoặc nhấp đúp để thêm"; chú thích và `aria-*` cho tab, nút lưới/danh sách, bộ lọc hãng.
+- Thanh trên cùng: chú thích cho 5 menu (Chỉnh sửa, Thiết kế, Kỹ thuật, Hồ sơ, Trợ giúp); nút Kiểm tra đổi sang viền cam khi có vấn đề, kèm mô tả số lượng; tên dự án hiện đầy đủ khi rê chuột.
+
 ### Fixed
 - 3D: thêm thiết bị có xử lý lỗi + thông báo xác nhận; ngăn kéo thư viện (màn hình hẹp) chỉ ẩn khi đang kéo thay vì gỡ khỏi DOM.
 - 3D: điểm thả/chèn tính trên sàn của tầng đang chọn (kể cả chế độ cắt lớp nhiều tầng); rack thêm ở 3D cũng được đặt theo tâm khung nhìn.

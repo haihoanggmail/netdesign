@@ -25,6 +25,14 @@
    - Hoặc triển khai kèm Serverless Function có sẵn tại `/api/gemini/chat.ts`.
    - Cấu hình `GEMINI_API_KEY` (và tùy chọn `CHAT_API_SECRET`, `CHAT_RATE_LIMIT_PER_MIN`, `CHAT_RATE_LIMIT_PER_HOUR` trong biến môi trường) để kích hoạt endpoint `/api/gemini/chat` đã tích hợp sẵn giới hạn tần suất (rate-limit) và kiểm tra Origin.
 
+## Triển khai miễn phí: GitHub + Vercel (không cần VPS)
+
+1. Đẩy mã lên một repository GitHub (`git remote add origin <url> && git push -u origin main`).
+2. Vào vercel.com → **Add New… → Project** → chọn repository (gói Hobby miễn phí).
+3. Vercel nhận `vercel.json` có sẵn. Thiết lập: **Framework Preset = Vite**, **Build Command = `npm run build`**, **Output Directory = `dist`**, **Install Command = `npm install`**.
+4. Bấm **Deploy**. Chế độ vẽ/dự toán chạy hoàn toàn trên trình duyệt; biến môi trường chỉ cần khi bật Trợ lý AI (xem bảng bên dưới).
+5. Trước khi đẩy lên, chạy `npm run build`, `npm test` và `npm run test:e2e` trên máy có mạng để xác nhận.
+
 ## Biến môi trường (Tùy chọn cho Vercel / Full-Stack)
 
 Tất cả các biến dưới đây đều **tùy chọn** cho chế độ vẽ và dự toán offline. Khi không cấu hình, ứng dụng tự ẩn tính năng AI trực tuyến và nút Góp ý.
