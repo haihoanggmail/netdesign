@@ -154,7 +154,7 @@ t('cable is strict: hidden layer, endpoint off-floor, endpoint missing, partial 
   assert.equal(getZoomSelectionBounds(project(), { type: 'edge', id: 'c4' }).status, 'unsupported');
   const partial = getZoomSelectionBounds(project(), { type: 'edge', id: 'c1', additionalIds: ['c2'] });
   assert.equal(partial.status, 'unsupported');
-  assert.ok(partial.status !== 'ok' && partial.reason.length > 0);
+  assert.ok(partial.reason.length > 0); // assert.equal ở trên đã thu hẹp kiểu về 'unsupported'
 });
 
 t('cable whose endpoint is rack-mounted resolves to the slot inside the rack', () => {
