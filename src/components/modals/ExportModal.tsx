@@ -56,7 +56,7 @@ interface ExportModalProps {
   is3DView?: boolean;
   isCapturing3D?: boolean;
   onCapture3D?: (options?: Capture3DRequestOptions) => Promise<Capture3DResult>;
-  onCapture3DScene?: () => Scene3DSnapshot;
+  onCapture3DScene?: () => Scene3DSnapshot | Promise<Scene3DSnapshot>;
   onClose: () => void;
   onLoadProjectJson: (jsonState: ProjectState) => void;
   onRequestPackageImport?: (file: File) => Promise<void> | void;
@@ -244,14 +244,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   // 2c. Export Standalone Offline HTML Viewer (2D + BOM)
-  const handleExportHtmlViewer = () => {
+  const handleExportHtmlViewer = async () => {
     try {
       if (contentScope === '2d') {
         ExportService.exportHtmlViewer(project);
         setStatusBanner({ type: 'success', text: 'Đã xuất trình xem HTML độc lập 2D + BOM (không cần cài phần mềm)!' });
         return;
       }
-      const res = ExportService.exportHtmlViewer3D(project, {
+      setStatusBanner({ type: 'info', text: 'Đang dựng và đóng gói mô hình 3D...' });
+      const res = await ExportService.exportHtmlViewer3D(project, {
         contentScope,
         captureScene: onCapture3DScene,
         data: viewerData
@@ -664,7 +665,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       <div className="px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 text-amber-800 dark:text-amber-200 text-[11px] font-medium flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span>
-                          Hiện bạn đang ở chế độ 2D CAD. Để chụp &amp; xuất hình 3D WebGL sắc nét, hãy chuyển sang chế độ 3D trước khi bấm xuất (hệ thống không thay thế bằng hình 2D).
+                          Bạn đang ở chế độ 2D CAD — hệ thống sẽ tự dựng cảnh 3D ẩn để chụp &amp; xuất mô hình 3D (không thay thế bằng hình 2D). Mất vài giây.
                         </span>
                       </div>
                     )}
@@ -951,13 +952,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 {/* Option 6: Standalone HTML Viewer (2D + BOM, hoặc 3D xoay được) */}
                 <button
                   type="button"
-                  disabled={contentScope !== '2d' && (!is3DView || !isViewer3DRuntimeReady())}
+                  disabled={contentScope !== '2d' && !isViewer3DRuntimeReady()}
                   onClick={handleExportHtmlViewer}
                   title={
                     contentScope !== '2d' && !isViewer3DRuntimeReady()
                       ? 'Chưa có runtime trình xem 3D — chạy "npm run build:viewer3d"'
-                      : contentScope !== '2d' && !is3DView
-                      ? 'Hãy chuyển sang chế độ 3D trước khi xuất HTML 3D'
                       : contentScope === '2d'
                       ? 'Tải trình xem HTML độc lập 2D + BOM'
                       : 'Tải trình xem HTML 3D xoay được (offline)'
@@ -986,8 +985,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="text-[11px] text-teal-600 font-semibold mt-1.5">
                       {contentScope !== '2d' && !isViewer3DRuntimeReady()
                         ? 'Thiếu runtime 3D — chạy npm run build:viewer3d'
-                        : contentScope !== '2d' && !is3DView
-                        ? 'Cần chuyển sang chế độ 3D trước'
                         : contentScope === '2d'
                         ? 'Tải file HTML Viewer →'
                         : 'Tải file HTML 3D Viewer →'}
