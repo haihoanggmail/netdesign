@@ -30,7 +30,6 @@ import {
   Keyboard,
   FileDown,
   FileSpreadsheet,
-  Upload,
   Menu,
   Compass,
   Network,
@@ -727,7 +726,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                   {fileMenuTab === 'new' ? (
                     <div className="px-2 space-y-1">
                       <div className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        Tạo mới &amp; Nhập dự án
+                        Tạo mới dự án
                       </div>
                       <button
                         type="button"
@@ -774,40 +773,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                           </div>
                         </button>
                       )}
-                      {onOpenJsonImport && (
-                        <button
-                          type="button"
-                          onClick={() => closeAndRun(onOpenJsonImport)}
-                          className="w-full px-2.5 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-start gap-2.5 transition-colors"
-                        >
-                          <Upload className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                          <div className="min-w-0">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              Nhập từ file JSON
-                            </div>
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                              Khôi phục dự án hoặc bản sao lưu từ tệp .json
-                            </div>
-                          </div>
-                        </button>
-                      )}
-                      {onOpenPackageImport && (
-                        <button
-                          type="button"
-                          onClick={() => closeAndRun(onOpenPackageImport)}
-                          className="w-full px-2.5 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-start gap-2.5 transition-colors"
-                        >
-                          <FileArchive className="w-4 h-4 text-[#155EEF] shrink-0 mt-0.5" />
-                          <div className="min-w-0">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              Từ file đồng nghiệp đã lưu &amp; gửi
-                            </div>
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                              Mở gói dự án (.hachihi.json) kèm ảnh, lịch sử &amp; kiểm tra toàn vẹn
-                            </div>
-                          </div>
-                        </button>
-                      )}
                     </div>
                   ) : (
                     <div className="px-2 space-y-1">
@@ -841,24 +806,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                               Mở file từ máy (.hachihi.json / .json)
                             </div>
                             <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                              Xem trước và mở file bản vẽ do người khác gửi hoặc đã sao lưu
-                            </div>
-                          </div>
-                        </button>
-                      )}
-                      {onOpenExcelImport && (
-                        <button
-                          type="button"
-                          onClick={() => closeAndRun(onOpenExcelImport)}
-                          className="w-full px-2.5 py-2 rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-start gap-2.5 transition-colors"
-                        >
-                          <FileSpreadsheet className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
-                          <div className="min-w-0">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              Nhập / Xuất Cây Excel (.xlsx / .csv)
-                            </div>
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                              Tải mẫu, xem trước cây phân cấp hoặc xuất từ bản vẽ đang mở
+                              Xem trước và mở gói dự án do đồng nghiệp gửi hoặc bản sao lưu, kèm ảnh, lịch sử &amp; kiểm tra toàn vẹn
                             </div>
                           </div>
                         </button>
@@ -878,11 +826,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <button type="button" onClick={() => closeAndRun(onDuplicateProject)} className={menuItemCls}>
                       <span className="flex items-center gap-2">
                         <Copy className="w-3.5 h-3.5 text-slate-500" /> Lưu thành bản sao
-                      </span>
-                    </button>
-                    <button type="button" onClick={() => closeAndRun(onOpenProjectHub)} className={menuItemCls}>
-                      <span className="flex items-center gap-2">
-                        <FolderKanban className="w-3.5 h-3.5 text-slate-500" /> Trung tâm dự án
                       </span>
                     </button>
                   </div>
