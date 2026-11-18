@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   MousePointer,
   Hand,
@@ -67,18 +67,42 @@ export const CanvasToolRail: React.FC<CanvasToolRailProps> = ({
   onSetTool,
   onGenerateLegend
 }) => {
+  const railRef = useRef<HTMLElement>(null);
+
   if (layoutTier === 'narrow') return null;
+
+  // Điều hướng bằng phím mũi tên giữa các công cụ (chỉ thay đổi tiêu điểm bàn phím, không đổi công cụ)
+  const handleRailKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+    if (!keys.includes(e.key) || !railRef.current) return;
+    const buttons: HTMLButtonElement[] = Array.from(
+      railRef.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+    );
+    if (buttons.length === 0) return;
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    let next = current;
+    if (e.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % buttons.length;
+    else if (e.key === 'ArrowUp') next = current <= 0 ? buttons.length - 1 : current - 1;
+    else if (e.key === 'Home') next = 0;
+    else next = buttons.length - 1;
+    e.preventDefault();
+    buttons[next]?.focus();
+  };
 
   const isCompactRail = layoutTier === 'medium';
   const recommendedIds = RECOMMENDED_BY_MODE[activeMode] || ['select'];
 
   return (
     <aside
+      ref={railRef}
+      role="toolbar"
+      aria-orientation="vertical"
       aria-label="Thanh công cụ vẽ"
+      onKeyDown={handleRailKeyDown}
       onPointerDown={e => e.stopPropagation()}
-      className="hidden md:flex flex-col gap-1 absolute top-3 left-3 z-20 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-800 shadow-md select-none no-print"
+      className="tool-rail hidden md:flex flex-col gap-1 absolute top-3 left-3 z-20 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-800 shadow-md select-none no-print"
     >
-      {CANVAS_TOOLS.map(item => {
+      {CANVAS_TOOLS.map((item, index) => {
         const Icon = item.icon;
         const isActive = item.kind === 'tool' && activeTool === item.id;
         const isRecommended = recommendedIds.includes(item.id);
@@ -97,13 +121,24 @@ export const CanvasToolRail: React.FC<CanvasToolRailProps> = ({
           }
         };
 
+        // Vạch ngăn nhóm: [Chọn, Kéo] | [Nối dây, Phòng, Chữ, Chú giải] | [Đo]
+        const startsGroup = index > 0 && (item.id === 'connect' || item.id === 'measure');
+
         return (
+          <React.Fragment key={item.id}>
+          {startsGroup && (
+            <span
+              role="separator"
+              aria-orientation="horizontal"
+              className="my-0.5 h-px bg-slate-200 dark:bg-slate-700 mx-1"
+            />
+          )}
           <button
-            key={item.id}
             type="button"
             disabled={disabled}
             onClick={handleClick}
             aria-pressed={item.kind === 'tool' ? isActive : undefined}
+            aria-keyshortcuts={item.shortcut}
             aria-label={`${item.label} (${item.shortcut})`}
             title={`${item.label} (${item.shortcut})${isRecommended ? ' · Phù hợp chế độ hiện tại' : ''}`}
             className={`group relative flex items-center justify-between gap-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -137,7 +172,17 @@ export const CanvasToolRail: React.FC<CanvasToolRailProps> = ({
                 {item.shortcut}
               </kbd>
             )}
+            {isCompactRail && (
+              <span
+                role="presentation"
+                className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 z-30 hidden group-hover:flex group-focus-visible:flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900 text-white dark:bg-slate-700 text-[11px] font-medium shadow-lg whitespace-nowrap"
+              >
+                {item.label}
+                <kbd className="font-mono text-[10px] px-1 rounded bg-white/15">{item.shortcut}</kbd>
+              </span>
+            )}
           </button>
+          </React.Fragment>
         );
       })}
     </aside>

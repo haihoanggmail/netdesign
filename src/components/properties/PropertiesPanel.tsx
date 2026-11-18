@@ -444,6 +444,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               type="button"
               role="tab"
               aria-selected={activePanelTab === 'inspector'}
+              title="Thuộc tính của đối tượng đang chọn (hoặc cài đặt dự án khi chưa chọn gì)"
               onClick={() => setActivePanelTab('inspector')}
               className={`py-1.5 px-2 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap truncate transition-colors ${
                 activePanelTab === 'inspector'
@@ -458,6 +459,13 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               type="button"
               role="tab"
               aria-selected={activePanelTab === 'power'}
+              title={
+                poeSummary.status === 'overload'
+                  ? 'Điện / Năng lượng — CẢNH BÁO: quá tải PoE, nhấn để xem chi tiết'
+                  : poeSummary.status === 'warning'
+                  ? 'Điện / Năng lượng — gần ngưỡng PoE, nhấn để xem chi tiết'
+                  : 'Điện / Năng lượng: tải PoE, điện AC và UPS'
+              }
               onClick={() => setActivePanelTab('power')}
               className={`py-1.5 px-2 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap truncate transition-colors ${
                 activePanelTab === 'power'

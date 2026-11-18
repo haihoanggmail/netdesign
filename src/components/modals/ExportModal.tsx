@@ -591,6 +591,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             {statusBanner && (
               <div
+                role={statusBanner.type === 'error' ? 'alert' : 'status'}
+                aria-live={statusBanner.type === 'error' ? 'assertive' : 'polite'}
                 className={`px-6 py-2.5 border-b font-medium flex items-center gap-2 shrink-0 ${
                   statusBanner.type === 'error'
                     ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
@@ -667,7 +669,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                           Nền kết xuất 3D
                         </div>
                         <div className="grid grid-cols-2 gap-1">
@@ -697,7 +699,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       </div>
 
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                           Góc camera 3D xuất PDF / ZIP
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -822,7 +824,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Xuất cấu trúc phân cấp thiết bị, Router Cha (Uplink), IP/VLAN, Cổng &amp; Loại cáp tương thích nhập ngược lại
                     </div>
-                    <div className="text-[10px] text-emerald-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-emerald-600 font-semibold mt-1.5">
                       Tải file Cây Router (.xlsx) &rarr;
                     </div>
                   </div>
@@ -849,7 +851,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Chuẩn cột Ultimate: Mã tài sản, Model, IP, VLAN, Tủ Rack, Vị trí U, Số U &amp; Mặt tủ (Trước/Sau)
                     </div>
-                    <div className="text-[10px] text-emerald-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-emerald-600 font-semibold mt-1.5">
                       Tải file mẫu Excel (.xlsx) &rarr;
                     </div>
                   </div>
@@ -880,7 +882,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         ? 'Tải cả ảnh vector 2D 2x và ảnh chụp WebGL 3D hiện tại'
                         : 'Kết xuất vector thuần độ phân giải 2x (không bị lỗi mất chữ/mất biểu tượng)'}
                     </div>
-                    <div className="text-[10px] text-blue-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-blue-600 font-semibold mt-1.5">
                       {isExportingPng ? 'Đang kết xuất PNG...' : 'Tải file PNG →'}
                     </div>
                   </div>
@@ -901,7 +903,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm text-slate-900 dark:text-white">Vector SVG Chuẩn CAD</span>
                       {contentScope === '3d' && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
                           Chỉ 2D
                         </span>
                       )}
@@ -909,7 +911,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Định dạng vector sắc nét vô hạn, tương thích Visio, Corel, Illustrator
                     </div>
-                    <div className="text-[10px] text-sky-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-sky-600 font-semibold mt-1.5">
                       {contentScope === '3d' ? 'Không áp dụng cho phạm vi 3D' : 'Tải file SVG →'}
                     </div>
                   </div>
@@ -930,7 +932,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm text-slate-900 dark:text-white">AutoCAD DXF Đa Lớp (.dxf)</span>
                       {contentScope === '3d' && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
                           Chỉ 2D
                         </span>
                       )}
@@ -938,7 +940,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Xuất tệp CAD R12 tách lớp riêng ROOMS, RACKS, DEVICES, CABLES &amp; LABELS
                     </div>
-                    <div className="text-[10px] text-indigo-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-indigo-600 font-semibold mt-1.5">
                       {contentScope === '3d' ? 'Không áp dụng cho phạm vi 3D' : 'Tải file AutoCAD DXF →'}
                     </div>
                   </div>
@@ -969,7 +971,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         {contentScope === '2d' ? 'Trình Xem HTML Độc Lập (.html)' : 'Trình Xem HTML 3D Xoay Được (.html)'}
                       </span>
                       {contentScope !== '2d' && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shrink-0">
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shrink-0">
                           3D
                         </span>
                       )}
@@ -979,7 +981,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         ? 'Sơ đồ 2D CAD + BOM thiết bị offline (không bao gồm mô hình 3D WebGL)'
                         : 'Mô hình 3D tương tác như trong phần mềm: xoay ngang/dọc, zoom, dịch chuyển, đổi góc nhìn (Iso / Trên / Trước / Bên), bấm xem thông tin thiết bị — mở offline bằng trình duyệt'}
                     </div>
-                    <div className="text-[10px] text-teal-600 font-semibold mt-1.5">
+                    <div className="text-[11px] text-teal-600 font-semibold mt-1.5">
                       {contentScope !== '2d' && !isViewer3DRuntimeReady()
                         ? 'Thiếu runtime 3D — chạy npm run build:viewer3d'
                         : contentScope !== '2d' && !is3DView
@@ -1128,7 +1130,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                       Khổ giấy (Paper Size)
                     </label>
                     <div className="grid grid-cols-4 gap-1">
@@ -1149,7 +1151,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                       Hướng giấy (Orientation)
                     </label>
                     <div className="grid grid-cols-2 gap-1">
@@ -1177,7 +1179,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                       Tỉ lệ trang bản vẽ
                     </label>
                     <div className="grid grid-cols-2 gap-1">
@@ -1207,7 +1209,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                       Số hiệu bản vẽ (Khung tên)
                     </label>
                     <input
@@ -1219,7 +1221,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
                       Tỷ lệ bản vẽ (Scale)
                     </label>
                     <input

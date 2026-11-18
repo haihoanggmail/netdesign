@@ -164,7 +164,7 @@ export const CableInspector: React.FC<CableInspectorProps> = ({
               type="button"
               onClick={() => setConfirmDeleteKey(`cable_${selectedCable.id}`)}
               aria-label="Xóa tuyến cáp"
-              className="p-1.5 hover:bg-rose-50 text-rose-600 dark:hover:bg-rose-950/40 rounded-md transition-colors"
+              className="p-1.5 hover:bg-rose-50 text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 rounded-md transition-colors"
               title="Xóa tuyến cáp"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -175,6 +175,7 @@ export const CableInspector: React.FC<CableInspectorProps> = ({
               type="button"
               onClick={onToggleCollapse}
               aria-label="Thu gọn bảng thuộc tính"
+              title="Thu gọn bảng thuộc tính"
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -185,6 +186,7 @@ export const CableInspector: React.FC<CableInspectorProps> = ({
               type="button"
               onClick={onClosePanel}
               aria-label="Đóng bảng thuộc tính"
+              title="Đóng bảng thuộc tính"
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
@@ -195,18 +197,25 @@ export const CableInspector: React.FC<CableInspectorProps> = ({
 
       {/* 4 Segmented Tabs */}
       <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="grid grid-cols-4 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
+        <div
+          role="tablist"
+          aria-label="Nhóm thuộc tính tuyến cáp"
+          className="grid grid-cols-4 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md"
+        >
           {(
             [
-              { id: 'overview', label: 'Tổng quan' },
-              { id: 'endpoints', label: 'Kết nối' },
-              { id: 'display', label: 'Hiển thị' },
-              { id: 'advanced', label: 'Nâng cao' }
+              { id: 'overview', label: 'Tổng quan', tip: 'Loại cáp, băng thông, chiều dài và thông số chính' },
+              { id: 'endpoints', label: 'Kết nối', tip: 'Thiết bị và cổng ở hai đầu cáp; đổi chiều đầu nối' },
+              { id: 'display', label: 'Hiển thị', tip: 'Màu tín hiệu, kiểu đường đi, nhãn cáp' },
+              { id: 'advanced', label: 'Nâng cao', tip: 'Cấu hình nâng cao của tuyến cáp' }
             ] as const
           ).map(t => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={cableTab === t.id}
+              title={t.tip}
               onClick={() => setCableTab(t.id)}
               className={`py-1 px-1 rounded text-xs font-medium whitespace-nowrap truncate transition-colors ${
                 cableTab === t.id

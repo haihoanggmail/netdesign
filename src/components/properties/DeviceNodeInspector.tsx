@@ -221,7 +221,7 @@ export const DeviceNodeInspector: React.FC<DeviceNodeInspectorProps> = ({
               type="button"
               onClick={() => setConfirmDeleteKey(`node_${selectedNode.id}`)}
               aria-label="Xóa đối tượng"
-              className="p-1.5 hover:bg-rose-50 text-rose-600 dark:hover:bg-rose-950/40 rounded-md transition-colors"
+              className="p-1.5 hover:bg-rose-50 text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 rounded-md transition-colors"
               title="Xóa đối tượng"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -232,6 +232,7 @@ export const DeviceNodeInspector: React.FC<DeviceNodeInspectorProps> = ({
               type="button"
               onClick={onToggleCollapse}
               aria-label="Thu gọn bảng thuộc tính"
+              title="Thu gọn bảng thuộc tính"
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -242,6 +243,7 @@ export const DeviceNodeInspector: React.FC<DeviceNodeInspectorProps> = ({
               type="button"
               onClick={onClosePanel}
               aria-label="Đóng bảng thuộc tính"
+              title="Đóng bảng thuộc tính"
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
@@ -252,11 +254,26 @@ export const DeviceNodeInspector: React.FC<DeviceNodeInspectorProps> = ({
 
       {/* 4 Segmented Tabs: Chung / Mạng / Vật lý / Ghi chú */}
       <div className="px-3 pt-2 pb-1.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+        <div
+          role="tablist"
+          aria-label="Nhóm thuộc tính thiết bị"
+          className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg"
+        >
           {nodeTabs.map(t => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={deviceTab === t.id}
+              title={
+                t.id === 'general'
+                  ? 'Chung: tên, loại, kích thước, hiển thị'
+                  : t.id === 'network'
+                  ? 'Mạng: địa chỉ IP, VLAN, cổng kết nối và tuyến cáp'
+                  : t.id === 'physical'
+                  ? 'Vật lý: tầng, phòng, tủ Rack, nguồn PoE / UPS, camera / Wi-Fi'
+                  : 'Ghi chú và cấu hình nâng cao'
+              }
               onClick={() => setDeviceTab(t.id)}
               className={`py-1.5 px-1 rounded-md text-xs font-semibold whitespace-nowrap truncate transition-colors ${
                 deviceTab === t.id
@@ -293,6 +310,11 @@ export const DeviceNodeInspector: React.FC<DeviceNodeInspectorProps> = ({
                 • {iss.title}
               </div>
             ))}
+            {nodeAuditIssues.length > 3 && (
+              <div className="text-xs leading-snug opacity-80">
+                … và {nodeAuditIssues.length - 3} cảnh báo khác (xem đầy đủ ở Kiểm tra kỹ thuật)
+              </div>
+            )}
           </div>
         )}
 

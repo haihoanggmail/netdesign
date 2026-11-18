@@ -900,6 +900,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onClick={() => toggleMenu('edit')}
                 aria-expanded={openMenu === 'edit'}
                 aria-label="Mở menu Chỉnh sửa"
+                aria-haspopup="menu"
+                title="Chỉnh sửa: hoàn tác, làm lại, sao chép, dán kiểu, xóa, chọn tất cả"
                 className={menuTriggerCls(openMenu === 'edit')}
               >
                 <span>Chỉnh sửa</span>
@@ -922,6 +924,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onClick={() => toggleMenu('design')}
                 aria-expanded={openMenu === 'design'}
                 aria-label="Mở menu Thiết kế"
+                aria-haspopup="menu"
+                title="Thiết kế: thư viện mẫu chuẩn, tòa nhà nhiều tầng, gán IP / VLAN"
                 className={menuTriggerCls(openMenu === 'design')}
               >
                 <span>Thiết kế</span>
@@ -944,6 +948,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onClick={() => toggleMenu('engineering')}
                 aria-expanded={openMenu === 'engineering'}
                 aria-label="Mở menu Kỹ thuật"
+                aria-haspopup="menu"
+                title="Kỹ thuật: Subnet / VLAN, kiểm tra kỹ thuật, tải PoE / điện / UPS, tủ Rack, định tuyến cáp"
                 className={menuTriggerCls(openMenu === 'engineering')}
               >
                 <span>Kỹ thuật</span>
@@ -966,6 +972,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onClick={() => toggleMenu('documents')}
                 aria-expanded={openMenu === 'documents'}
                 aria-label="Mở menu Hồ sơ"
+                aria-haspopup="menu"
+                title="Hồ sơ: xuất nhanh PDF A4, nhập / xuất Excel, xuất hồ sơ (PDF, 3D PNG, DXF, SVG, ZIP)"
                 className={menuTriggerCls(openMenu === 'documents')}
               >
                 <span>Hồ sơ</span>
@@ -988,6 +996,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 onClick={() => toggleMenu('help')}
                 aria-expanded={openMenu === 'help'}
                 aria-label="Mở menu Trợ giúp"
+                aria-haspopup="menu"
+                title="Trợ giúp: hướng dẫn nhanh, phím tắt, tài liệu, góp ý"
                 className={menuTriggerCls(openMenu === 'help')}
               >
                 <span>Trợ giúp</span>
@@ -1055,7 +1065,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onOpenProjectHub}
             aria-label="Mở Trung tâm dự án"
             className="flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-0"
-            title="Mở Trung tâm dự án"
+            title={`${project.name} — Mở Trung tâm dự án`}
           >
             <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[96px] sm:max-w-[130px] xl:max-w-[180px]">
               {project.name}
@@ -1116,8 +1126,21 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={onOpenEngineeringAudit}
-            className="h-8 flex items-center gap-1.5 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 hover:border-[#155EEF] text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors whitespace-nowrap shrink-0"
-            title="Kiểm tra kỹ thuật, xung đột IP/VLAN và PoE"
+            aria-label={
+              auditIssueCount > 0
+                ? `Kiểm tra kỹ thuật: có ${auditIssueCount} vấn đề cần xem`
+                : 'Kiểm tra kỹ thuật: chưa phát hiện vấn đề'
+            }
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md border hover:border-[#155EEF] text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors whitespace-nowrap shrink-0 ${
+              auditIssueCount > 0
+                ? 'border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/30'
+                : 'border-slate-200 dark:border-slate-700'
+            }`}
+            title={
+              auditIssueCount > 0
+                ? `Kiểm tra kỹ thuật: ${auditIssueCount} vấn đề (xung đột IP/VLAN, PoE, rack…) — nhấn để xem chi tiết`
+                : 'Kiểm tra kỹ thuật, xung đột IP/VLAN và PoE — hiện chưa phát hiện vấn đề'
+            }
           >
             <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${auditIssueCount > 0 ? 'text-amber-600' : 'text-[#16A34A]'}`} />
             <span>Kiểm tra</span>

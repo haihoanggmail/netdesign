@@ -110,7 +110,10 @@ export const LegendNodeInspector: React.FC<LegendNodeInspectorProps> = ({
           )}
           {onToggleCollapse && layoutTier === 'wide' && (
             <button
+              type="button"
               onClick={onToggleCollapse}
+              aria-label="Thu gọn bảng thuộc tính"
+              title="Thu gọn bảng thuộc tính"
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />

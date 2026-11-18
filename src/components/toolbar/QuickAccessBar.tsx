@@ -86,6 +86,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
   const [openMenu, setOpenMenu] = useState<'more' | null>(null);
   const [showRecentInMore, setShowRecentInMore] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!openMenu) return;
@@ -95,7 +96,10 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpenMenu(null);
+      if (e.key === 'Escape') {
+        setOpenMenu(null);
+        moreBtnRef.current?.focus();
+      }
     };
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('keydown', handleKeyDown);
@@ -133,7 +137,8 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
   return (
     <div
       ref={barRef}
-      className="h-11 bg-slate-50/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between gap-2 select-none shrink-0 relative z-20 no-print"
+      role="toolbar"
+      className="qa-bar h-11 bg-slate-50/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between gap-2 select-none shrink-0 relative z-20 no-print"
       aria-label="Thanh công cụ thao tác nhanh"
     >
       {/* Left: Frequent Drawing Tools · Undo/Redo · Save · Fit · Layers · Thêm thiết bị · Adaptive Mode Actions */}
@@ -158,6 +163,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
                 disabled={disabled}
                 onClick={() => onSetTool(tool.id)}
                 aria-pressed={active}
+                aria-keyshortcuts={tool.shortcut}
                 aria-label={`${tool.label} (${tool.shortcut})`}
                 title={
                   is3DView && !unlockedIn3D
@@ -187,6 +193,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
             type="button"
             onClick={onUndo}
             disabled={!canUndo || isReadOnlyMode}
+            aria-keyshortcuts="Control+Z"
             aria-label="Hoàn tác (Ctrl+Z)"
             title="Hoàn tác (Ctrl+Z)"
             className="h-7 w-7 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
@@ -197,6 +204,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
             type="button"
             onClick={onRedo}
             disabled={!canRedo || isReadOnlyMode}
+            aria-keyshortcuts="Control+Y"
             aria-label="Làm lại (Ctrl+Y)"
             title="Làm lại (Ctrl+Y)"
             className="h-7 w-7 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
@@ -210,6 +218,10 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
           type="button"
           onClick={onSaveNow}
           disabled={isSaving}
+          aria-keyshortcuts="Control+S"
+          aria-label={
+            isSaving ? 'Đang lưu dự án' : hasUnsavedChanges ? 'Lưu dự án — có thay đổi chưa lưu (Ctrl+S)' : 'Lưu dự án (Ctrl+S)'
+          }
           className={`${btnBase} ${
             hasUnsavedChanges
               ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
@@ -226,6 +238,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
           <button
             type="button"
             onClick={onAddDeviceFocus}
+            aria-keyshortcuts="Control+F"
             className="h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1 whitespace-nowrap shrink-0 bg-[#155EEF]/10 hover:bg-[#155EEF]/15 text-[#155EEF] dark:text-blue-300 border border-[#155EEF]/25 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
             title={
               'Tìm và thêm thiết bị từ thư viện bên trái (Ctrl+F)'
@@ -346,9 +359,12 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
         {/* Nâng cao Popover — 6 Clear Engineering Groups */}
         <div className="relative">
           <button
+            ref={moreBtnRef}
             type="button"
             onClick={() => setOpenMenu(prev => (prev === 'more' ? null : 'more'))}
             aria-expanded={openMenu === 'more'}
+            aria-haspopup="true"
+            aria-controls={openMenu === 'more' ? 'qa-more-menu' : undefined}
             className={`${btnBase} ${
               openMenu === 'more'
                 ? 'bg-blue-50 dark:bg-blue-950/60 text-[#155EEF] dark:text-blue-300 border border-blue-200 dark:border-blue-800'
@@ -362,7 +378,7 @@ export const QuickAccessBar: React.FC<QuickAccessBarProps> = ({
           </button>
 
           {openMenu === 'more' && (
-            <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl py-1.5 z-40 max-h-[78dvh] overflow-y-auto">
+            <div id="qa-more-menu" className="absolute right-0 top-full mt-1.5 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl py-1.5 z-40 max-h-[78dvh] overflow-y-auto">
               {/* 1. TỰ ĐỘNG HÓA (còn lại ngoài nút chính) */}
               <div className={groupTitleCls}>Tự động hóa</div>
               {project.activeMode !== 'topology' && (

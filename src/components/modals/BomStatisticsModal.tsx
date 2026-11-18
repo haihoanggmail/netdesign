@@ -918,7 +918,7 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                     </div>
                     <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <div className="text-[11px] text-slate-500">Chênh lệch Dự toán</div>
-                      <div className={`text-base font-bold font-mono mt-0.5 ${baselineComparison.kpis.estimatedCostDeltaVnd > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      <div className={`text-base font-bold font-mono mt-0.5 ${baselineComparison.kpis.estimatedCostDeltaVnd > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {baselineComparison.kpis.estimatedCostDeltaVnd >= 0 ? '+' : ''}
                         {formatVnd(baselineComparison.kpis.estimatedCostDeltaVnd)}
                       </div>
@@ -929,13 +929,13 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          <th className="py-2.5 px-3">Hạng mục so sánh</th>
-                          <th className="py-2.5 px-3">Nhóm</th>
-                          <th className="py-2.5 px-3 text-right">Mốc cũ</th>
-                          <th className="py-2.5 px-3 text-right">Hiện tại</th>
-                          <th className="py-2.5 px-3 text-right">Chênh lệch</th>
-                          <th className="py-2.5 px-3 text-right">Chênh lệch VNĐ</th>
-                          <th className="py-2.5 px-3 text-center">Trạng thái</th>
+                          <th scope="col" className="py-2.5 px-3">Hạng mục so sánh</th>
+                          <th scope="col" className="py-2.5 px-3">Nhóm</th>
+                          <th scope="col" className="py-2.5 px-3 text-right">Mốc cũ</th>
+                          <th scope="col" className="py-2.5 px-3 text-right">Hiện tại</th>
+                          <th scope="col" className="py-2.5 px-3 text-right">Chênh lệch</th>
+                          <th scope="col" className="py-2.5 px-3 text-right">Chênh lệch VNĐ</th>
+                          <th scope="col" className="py-2.5 px-3 text-center">Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -945,7 +945,7 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                             <td className="py-2.5 px-3 text-slate-500">{diff.categoryLabel}</td>
                             <td className="py-2.5 px-3 text-right font-mono">{diff.baselineQty} {diff.unit}</td>
                             <td className="py-2.5 px-3 text-right font-mono">{diff.currentQty} {diff.unit}</td>
-                            <td className={`py-2.5 px-3 text-right font-mono font-bold ${diff.qtyDelta > 0 ? 'text-blue-600' : diff.qtyDelta < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            <td className={`py-2.5 px-3 text-right font-mono font-bold ${diff.qtyDelta > 0 ? 'text-blue-600 dark:text-blue-400' : diff.qtyDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
                               {formatDelta(diff.qtyDelta, ` ${diff.unit}`)}
                             </td>
                             <td className="py-2.5 px-3 text-right font-mono">
@@ -979,13 +979,13 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        <th className="py-2.5 px-3 w-10 text-center">STT</th>
-                        <th className="py-2.5 px-3 whitespace-nowrap">Mã SKU</th>
-                        <th className="py-2.5 px-3">Hãng / Model</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">SL</th>
-                        <th className="py-2.5 px-3 text-center whitespace-nowrap">U / W</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá (VNĐ)</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền (VNĐ)</th>
+                        <th scope="col" className="py-2.5 px-3 w-10 text-center">STT</th>
+                        <th scope="col" className="py-2.5 px-3 whitespace-nowrap">Mã SKU</th>
+                        <th scope="col" className="py-2.5 px-3">Hãng / Model</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">SL</th>
+                        <th scope="col" className="py-2.5 px-3 text-center whitespace-nowrap">U / W</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá (VNĐ)</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền (VNĐ)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1060,7 +1060,7 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                                   {row.totalWatts > 0 ? `${row.totalWatts} W` : '—'}
                                 </div>
                               </td>
-                              <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap tabular-nums">
                                 <input
                                   type="number"
                                   min={0}
@@ -1109,15 +1109,15 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          <th className="py-2.5 px-3 w-10 text-center">STT</th>
-                          <th className="py-2.5 px-3">Loại cáp &amp; Mã SKU</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Số tuyến</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Dài gốc</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Phụ trội</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Đặt hàng</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Cuộn</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá</th>
-                          <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
+                          <th scope="col" className="py-2.5 px-3 w-10 text-center">STT</th>
+                          <th scope="col" className="py-2.5 px-3">Loại cáp &amp; Mã SKU</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Số tuyến</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Dài gốc</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Phụ trội</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Đặt hàng</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Cuộn</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá</th>
+                          <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1182,7 +1182,7 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                                     ? `${cb.estimatedSpools} (${cb.spoolLengthMeters}m)`
                                     : `${cb.percentage}%`}
                                 </td>
-                                <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                <td className="py-2.5 px-3 text-right whitespace-nowrap tabular-nums">
                                   <input
                                     type="number"
                                     min={0}
@@ -1260,14 +1260,14 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        <th className="py-2.5 px-3 w-10 text-center">STT</th>
-                        <th className="py-2.5 px-3 whitespace-nowrap">SKU / Nhóm</th>
-                        <th className="py-2.5 px-3">Tên phụ kiện &amp; Quy cách</th>
-                        <th className="py-2.5 px-3 text-center whitespace-nowrap">ĐVT</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">Đề xuất đặt</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá</th>
-                        <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
-                        <th className="py-2.5 px-3">Quy tắc truy vết</th>
+                        <th scope="col" className="py-2.5 px-3 w-10 text-center">STT</th>
+                        <th scope="col" className="py-2.5 px-3 whitespace-nowrap">SKU / Nhóm</th>
+                        <th scope="col" className="py-2.5 px-3">Tên phụ kiện &amp; Quy cách</th>
+                        <th scope="col" className="py-2.5 px-3 text-center whitespace-nowrap">ĐVT</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Đề xuất đặt</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá</th>
+                        <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
+                        <th scope="col" className="py-2.5 px-3">Quy tắc truy vết</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1305,7 +1305,7 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                                 <div className="text-[10px] font-normal text-slate-400">gốc {acc.calculatedQty}</div>
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <td className="py-2.5 px-3 text-right whitespace-nowrap tabular-nums">
                               <input
                                 type="number"
                                 min={0}
@@ -1360,14 +1360,14 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <th className="py-2.5 px-3 w-12 text-center">STT</th>
-                            <th className="py-2.5 px-3">Tầng / Khu vực</th>
-                            <th className="py-2.5 px-3 text-right">Phòng</th>
-                            <th className="py-2.5 px-3 text-right">Diện tích (m²)</th>
-                            <th className="py-2.5 px-3 text-right">Thiết bị</th>
-                            <th className="py-2.5 px-3 text-right">Tủ Rack</th>
-                            <th className="py-2.5 px-3 text-right">Công suất (W)</th>
-                            <th className="py-2.5 px-3 text-right">Dự toán TB (VNĐ)</th>
+                            <th scope="col" className="py-2.5 px-3 w-12 text-center">STT</th>
+                            <th scope="col" className="py-2.5 px-3">Tầng / Khu vực</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Phòng</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Diện tích (m²)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Thiết bị</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Tủ Rack</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Công suất (W)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Dự toán TB (VNĐ)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1408,13 +1408,13 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <th className="py-2.5 px-3">Phòng / Khu vực</th>
-                            <th className="py-2.5 px-3">Thuộc tầng</th>
-                            <th className="py-2.5 px-3 text-right">Diện tích (m²)</th>
-                            <th className="py-2.5 px-3 text-right">Thiết bị</th>
-                            <th className="py-2.5 px-3 text-right">Tủ Rack</th>
-                            <th className="py-2.5 px-3 text-right">Điện (W)</th>
-                            <th className="py-2.5 px-3 text-right">Dự toán TB (VNĐ)</th>
+                            <th scope="col" className="py-2.5 px-3">Phòng / Khu vực</th>
+                            <th scope="col" className="py-2.5 px-3">Thuộc tầng</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Diện tích (m²)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Thiết bị</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Tủ Rack</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Điện (W)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Dự toán TB (VNĐ)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1450,12 +1450,12 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <th className="py-2.5 px-3">Phân hệ kỹ thuật</th>
-                            <th className="py-2.5 px-3 text-right">Thiết bị</th>
-                            <th className="py-2.5 px-3 text-right">Cáp (tuyến / m)</th>
-                            <th className="py-2.5 px-3 text-right">Công suất (W)</th>
-                            <th className="py-2.5 px-3 text-right">Dự toán (VNĐ)</th>
-                            <th className="py-2.5 px-3">Hạng mục chính</th>
+                            <th scope="col" className="py-2.5 px-3">Phân hệ kỹ thuật</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Thiết bị</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Cáp (tuyến / m)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Công suất (W)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Dự toán (VNĐ)</th>
+                            <th scope="col" className="py-2.5 px-3">Hạng mục chính</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
@@ -1479,13 +1479,13 @@ export const BomStatisticsModal: React.FC<BomStatisticsModalProps> = ({
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            <th className="py-2.5 px-3">Tủ Rack</th>
-                            <th className="py-2.5 px-3">Tầng</th>
-                            <th className="py-2.5 px-3 text-right">Sử dụng U</th>
-                            <th className="py-2.5 px-3 text-right">Số TB gắn tủ</th>
-                            <th className="py-2.5 px-3 text-right">Công suất (W)</th>
-                            <th className="py-2.5 px-3 text-right">Tải trọng (kg)</th>
-                            <th className="py-2.5 px-3 text-right">Dự toán (VNĐ)</th>
+                            <th scope="col" className="py-2.5 px-3">Tủ Rack</th>
+                            <th scope="col" className="py-2.5 px-3">Tầng</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Sử dụng U</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Số TB gắn tủ</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Công suất (W)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Tải trọng (kg)</th>
+                            <th scope="col" className="py-2.5 px-3 text-right">Dự toán (VNĐ)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">

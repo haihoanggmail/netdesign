@@ -366,7 +366,10 @@ export const DeepInspectModal: React.FC<DeepInspectModalProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={onClose}
+                aria-label="Đóng hộp thoại"
+                title="Đóng (Esc)"
                 className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md text-slate-400 hover:text-slate-600"
               >
                 <X className="w-5 h-5" />
@@ -751,8 +754,11 @@ export const DeepInspectModal: React.FC<DeepInspectModalProps> = ({
                 </div>
               </div>
             </div>
-            <button 
+            <button
+              type="button"
               onClick={onClose}
+              aria-label="Đóng hộp thoại"
+              title="Đóng (Esc)"
               className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md text-slate-400"
             >
               <X className="w-5 h-5" />

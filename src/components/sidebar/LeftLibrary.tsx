@@ -892,12 +892,16 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
         </div>
 
         {/* 3 Segmented Tabs: Danh mục | Yêu thích | Tùy chỉnh */}
-        <div className="grid grid-cols-3 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
+        <div
+          role="tablist"
+          aria-label="Nguồn thiết bị"
+          className="grid grid-cols-3 gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md"
+        >
           {(
             [
-              { id: 'catalog', label: 'Danh mục' },
-              { id: 'favorites', label: 'Yêu thích' },
-              { id: 'custom', label: 'Tùy chỉnh' }
+              { id: 'catalog', label: 'Danh mục', tip: 'Toàn bộ thiết bị và ký hiệu, chia theo nhóm' },
+              { id: 'favorites', label: 'Yêu thích', tip: 'Thiết bị bạn đã gắn sao để dùng nhanh' },
+              { id: 'custom', label: 'Tùy chỉnh', tip: 'Thiết bị do bạn tự tạo (hãng, mã, cổng, công suất)' }
             ] as const
           ).map(tab => {
             const active = activeTab === tab.id;
@@ -905,6 +909,9 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={active}
+                title={tab.tip}
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
                   active
@@ -932,9 +939,20 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                   id="hachihi-library-search-input"
                   ref={searchInputRef}
                   type="text"
-                  placeholder="Tìm thiết bị, cổng SFP+, hãng (Ctrl+F)..."
+                  placeholder="Tìm thiết bị, hãng, cổng… (Ctrl+F)"
+                  aria-label="Tìm thiết bị trong thư viện"
+                  title="Tìm theo tên, hãng, model hoặc loại cổng (VD: SFP+, PoE). Nhấn Esc để xóa."
+                  autoComplete="off"
+                  spellCheck={false}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape' && searchQuery) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSearchQuery('');
+                    }
+                  }}
                   className="ent-input pl-8 pr-7 text-xs"
                 />
                 {searchQuery && (
@@ -953,6 +971,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                   type="button"
                   onClick={() => setViewMode('grid')}
                   aria-label="Dạng lưới"
+                  aria-pressed={viewMode === 'grid'}
                   className={`p-1.5 rounded ${
                     viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-[#155EEF] shadow-2xs' : 'text-slate-500'
                   }`}
@@ -964,6 +983,7 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                   type="button"
                   onClick={() => setViewMode('list')}
                   aria-label="Dạng danh sách"
+                  aria-pressed={viewMode === 'list'}
                   className={`p-1.5 rounded ${
                     viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-[#155EEF] shadow-2xs' : 'text-slate-500'
                   }`}
@@ -983,6 +1003,8 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                     key={v}
                     type="button"
                     onClick={() => setSelectedVendor(v)}
+                    aria-pressed={active}
+                    title={v === 'Tất cả' ? 'Hiện thiết bị của mọi hãng' : `Chỉ hiện thiết bị hãng ${v}`}
                     className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap shrink-0 transition-colors ${
                       active
                         ? 'bg-[#155EEF] text-white'
@@ -993,6 +1015,33 @@ export const LeftLibrary: React.FC<LeftLibraryProps> = ({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Gợi ý thao tác / số kết quả (chỉ hiển thị, không đổi logic) */}
+            <div
+              className="flex items-center justify-between gap-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400"
+              aria-live="polite"
+            >
+              <span className="truncate">
+                {isFiltering
+                  ? `${orderedGroups.reduce((n, g) => n + g.count, 0)} kết quả`
+                  : isInsertBlocked
+                  ? 'Chế độ Chỉ xem — không thể thêm thiết bị'
+                  : 'Kéo thả vào bản vẽ hoặc nhấp đúp để thêm'}
+              </span>
+              {isFiltering && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedVendor('Tất cả');
+                  }}
+                  className="shrink-0 text-[#155EEF] dark:text-blue-400 font-medium hover:underline"
+                  title="Bỏ từ khóa và bộ lọc hãng"
+                >
+                  Xóa lọc
+                </button>
+              )}
             </div>
           </div>
 

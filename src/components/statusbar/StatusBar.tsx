@@ -39,6 +39,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   isSaving = false,
   storageError = null,
   auditIssueCount = 0,
+  onOpenAudit,
   onOpenAbout,
   onToggleSnap,
   onToggleGrid
@@ -127,19 +128,25 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
         </div>
 
-        <span
-          role="status"
-          aria-label={auditIssueCount > 0 ? `${auditIssueCount} cảnh báo kỹ thuật` : '0 cảnh báo kỹ thuật'}
-          className={`flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-3 font-medium whitespace-nowrap ${
+        <button
+          type="button"
+          onClick={() => onOpenAudit?.()}
+          disabled={!onOpenAudit}
+          aria-label={
+            auditIssueCount > 0
+              ? `${auditIssueCount} cảnh báo kỹ thuật. Mở kiểm tra kỹ thuật`
+              : '0 cảnh báo kỹ thuật. Mở kiểm tra kỹ thuật'
+          }
+          className={`flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-3 pr-1.5 py-0.5 rounded font-medium whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:hover:bg-transparent ${
             auditIssueCount > 0
               ? 'text-amber-700 dark:text-amber-400'
               : 'text-emerald-700 dark:text-emerald-400'
           }`}
-          title="Trạng thái kiểm tra kỹ thuật (bấm Kiểm tra trên thanh menu để xem chi tiết)"
+          title="Trạng thái kiểm tra kỹ thuật — bấm để xem chi tiết"
         >
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
           <span>{auditIssueCount > 0 ? `${auditIssueCount} cảnh báo` : '0 cảnh báo'}</span>
-        </span>
+        </button>
 
         <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-3 font-mono">
           <span
