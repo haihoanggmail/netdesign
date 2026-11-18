@@ -1921,6 +1921,7 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
 
         // Thả lên tủ rack -> lắp vào rack (giống 2D)
         if (onDropDeviceIntoRack && !presetName.toLowerCase().includes('rack')) {
+          try {
           const rect = refs.renderer.domElement.getBoundingClientRect();
           const ndc = new THREE.Vector2(
             ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -1935,7 +1936,7 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
               const grp = refs.nodeGroups.get(String(ud.nodeId));
               let preferredU = 1;
               if (rack && grp) {
-                const box = new THREE.Box3().setFromObject(grp);
+                const box = new THREE.Box3().setFromObject(grp.group);
                 const h = box.max.y - box.min.y;
                 if (h > 0) {
                   const frac = Math.min(1, Math.max(0, (hit.point.y - box.min.y) / h));
@@ -1946,6 +1947,9 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
               return;
             }
             if (ud.selectType && ud.selectId) break;
+          }
+          } catch (err) {
+            console.error('[3D] Dò tủ rack khi thả thất bại, chuyển sang thả lên sàn:', err);
           }
         }
 
