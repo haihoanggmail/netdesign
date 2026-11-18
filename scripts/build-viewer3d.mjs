@@ -26,6 +26,9 @@ const outputs = (Array.isArray(result) ? result : [result]).flatMap(r => r.outpu
 const chunk = outputs.find(o => o.type === 'chunk');
 if (!chunk) throw new Error('Không tạo được bundle trình xem 3D');
 
+// Tránh đóng sớm thẻ <script> khi nhúng vào HTML.
+const code = chunk.code.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
+
 // Kiểm tra bundle thật sự chứa runtime + three; nếu không thì DỪNG build (không để file generated rỗng).
 const REQUIRED_MARKERS = ['hachihi-3d-data', 'WebGLRenderer', 'v3d-ctxlost'];
 const MIN_BYTES = 100_000;
@@ -35,9 +38,6 @@ if (code.length < MIN_BYTES) {
 for (const m of REQUIRED_MARKERS) {
   if (!code.includes(m)) throw new Error(`Bundle trình xem 3D thiếu "${m}" — runtime không đầy đủ.`);
 }
-
-// Tránh đóng sớm thẻ <script> khi nhúng vào HTML.
-const code = chunk.code.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
 
 mkdirSync(dirname(outFile), { recursive: true });
 writeFileSync(
