@@ -24,5 +24,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["dist", "node_modules", "public"]
+ "include": ["src", "api", "server.ts", "vite.config.ts", "e2e", "playwright.config.ts"],
+"exclude": ["dist", "node_modules", "public"]
 }
