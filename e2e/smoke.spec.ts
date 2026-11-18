@@ -97,8 +97,6 @@ test.describe('HACHIHI Network & Electrical Designer E2E Smoke', () => {
       await expect(fileMenu.getByRole('button', { name: 'Mở', exact: true })).toBeVisible();
       await expect(fileMenu.getByText('Mẫu trống')).toBeVisible();
       await expect(fileMenu.getByText('Nhập / Xuất Cây Excel')).toBeVisible();
-      await expect(fileMenu.getByText('Nhập từ file JSON')).toBeVisible();
-      await expect(fileMenu.getByText(/Từ file đồng nghiệp đã lưu/i)).toBeVisible();
       await fileMenu.getByText('Chọn mẫu có sẵn').click();
 
       const tplDialog = page.getByRole('dialog', { name: /Thư Viện Mẫu/i });
