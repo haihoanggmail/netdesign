@@ -15,36 +15,39 @@ import {
   sanitizeExportBaseName
 } from './exportTypes';
 
+import { trackAfter, trackEvent } from '../tracker';
+
 export const ExportService = {
   exportPng(project: ProjectState, config: ExportPngConfig) {
-    return runExportPng(project, config);
+    return trackAfter('export', 'png', runExportPng(project, config));
   },
 
   exportSvg(project: ProjectState, contentScope: ExportContentScope = '2d') {
-    return runExportSvg(project, contentScope);
+    return trackAfter('export', 'svg', runExportSvg(project, contentScope));
   },
 
   exportDxf(project: ProjectState, contentScope: ExportContentScope = '2d') {
-    return runExportDxf(project, contentScope);
+    return trackAfter('export', 'dxf', runExportDxf(project, contentScope));
   },
 
   exportPdf(project: ProjectState, config: ExportPdfConfig) {
-    return runExportPdf(project, config);
+    return trackAfter('export', 'pdf', runExportPdf(project, config));
   },
 
   exportBundle(project: ProjectState, config: ExportBundleConfig) {
-    return runExportBundle(project, config);
+    return trackAfter('export', 'handover_bundle', runExportBundle(project, config));
   },
 
   exportHtmlViewer3D(
     project: ProjectState,
     config: { contentScope: ExportContentScope; captureScene?: CaptureSceneFn; data?: ViewerDataOptions }
   ) {
-    return runExportHtml3D(project, config);
+    return trackAfter('export', 'html_viewer_3d', runExportHtml3D(project, config));
   },
 
   exportHtmlViewer(project: ProjectState) {
     exportProjectToHtmlViewer(project);
+    trackEvent('export', 'html_viewer');
     const baseName = sanitizeExportBaseName(project.name);
     return { filename: `${baseName}_Viewer.html` };
   }

@@ -32,6 +32,7 @@ import { computeA4ScaleMetrics } from '../../utils/pdfExporter';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { VIEWER_DATA_PREVIEW_ONLY, ViewerDataOptions } from '../../utils/htmlViewerExporter';
 import { isViewer3DRuntimeReady } from '../../services/export/exportHtml3d';
+import { trackEvent } from '../../services/tracker';
 import type {
   CameraPresetId,
   Capture3DBackground,
@@ -334,6 +335,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      trackEvent('export', 'project_package');
 
       const extras: string[] = [];
       if (pkg.manifest.counts.embeddedImages > 0) extras.push(`${pkg.manifest.counts.embeddedImages} ảnh nhúng`);
