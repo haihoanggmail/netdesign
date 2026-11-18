@@ -1767,6 +1767,37 @@ function AppContent({ store }: { store: ProjectStore }) {
               </div>
             )}
 
+            {!viewport.is3DView && viewport.offscreen3DRequested && (
+              // Cảnh 3D ẩn (ngoài màn hình) chỉ để chụp/xuất file khi đang xem 2D — không nhận tương tác.
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'fixed',
+                  left: -10000,
+                  top: 0,
+                  width: 1280,
+                  height: 720,
+                  pointerEvents: 'none',
+                  visibility: 'hidden'
+                }}
+              >
+                <Suspense fallback={null}>
+                  <Network3DScene
+                    ref={viewport.register3DHandle}
+                    project={store.project}
+                    selection={store.selection}
+                    activeTool="select"
+                    isReadOnlyMode
+                    isSceneDragLocked
+                    view3DOptions={viewport.view3DOptions}
+                    onSelect={() => {}}
+                    onOpenDeepInspect={() => {}}
+                    onExit3D={() => {}}
+                  />
+                </Suspense>
+              </div>
+            )}
+
             {viewport.is3DView ? (
               <Suspense
                 fallback={
@@ -2581,7 +2612,7 @@ function AppContent({ store }: { store: ProjectStore }) {
               is3DView={viewport.is3DView}
               isCapturing3D={viewport.isCapturing3D}
               onCapture3D={viewport.capture3DImage}
-              onCapture3DScene={viewport.capture3DScene}
+              onCapture3DScene={viewport.capture3DSceneAsync}
               onClose={() => setIsExportModalOpen(false)}
               onOpenBomModal={openBomModal}
               onAfterExportRouterTree={() => recordAction('export_excel_tree')}
