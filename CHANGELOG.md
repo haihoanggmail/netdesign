@@ -4,6 +4,16 @@ Tài liệu này ghi nhận các thay đổi quan trọng của **HACHIHI Networ
 
 ## Unreleased
 
+### Sửa lỗi: xuất HTML 2D + 3D báo "Không thể dựng mô hình 3D: Ho[t.path.type] is not a constructor"
+- **Nguyên nhân:** cáp 3D là `TubeGeometry` với `path` là `CurvePath`; `scene.toJSON()` chỉ lưu tham số, còn `ObjectLoader` khi đọc lại tra `Curves[path.type]` — bảng này không có `CurvePath` nên ra `undefined`. Sơ đồ 2D không dùng three nên vẫn hiển thị bình thường.
+- **Sửa:** `services/export/sceneSerialize.ts` — trước `toJSON` tạm đổi `TubeGeometry` / `ExtrudeGeometry(extrudePath)` thành `BufferGeometry` thuần, xong khôi phục ngay (cảnh đang hiển thị không đổi). Runtime viewer có thêm lưới an toàn: file cũ vẫn mở được phần còn lại và hiện cảnh báo.
+- Test mới `sceneSerialize.test.ts` tái hiện lỗi + xác nhận bản sửa.
+
+### Cải thiện file HTML xuất (3D / 2D)
+- Dark mode toàn trang (nút Sáng/Tối ở thanh tiêu đề, nhớ lựa chọn): đổi cả bảng, sơ đồ 2D (dựng sẵn bản sáng + tối), nền/sương mù/đèn/texture sàn của cảnh 3D giống phần mềm.
+- Thu gọn được: thanh điều khiển 3D, bảng hướng dẫn, bảng thông tin đối tượng (– / ×, Esc), thanh tiêu đề, thanh trạng thái chân trang; chế độ "Toàn cảnh" (phím H) ẩn toàn bộ giao diện. Màn hình hẹp tự thu gọn thanh điều khiển + hướng dẫn.
+- Bản xuất chỉ 2D cũng có dark mode và thu gọn.
+
 ### Thêm: ghi log sử dụng về Google Sheet (tùy chọn, mặc định tắt khi chưa đặt biến môi trường)
 - `api/track.ts` (Vercel Serverless): nhận sự kiện `visit | template | save | export`, bổ sung time (giờ VN), IP, quốc gia, thành phố từ header Vercel, rồi POST sang Apps Script bằng `URL_SHEET` + `SERECT_SHEET`. Lỗi / thiếu cấu hình / sai dữ liệu → bỏ qua, luôn trả `{ok:true}`. Có giới hạn 40 lượt/phút/IP, kiểm tra Origin, chỉ gửi tới `https://script.google.com`.
 - `apps-script/Code.gs`: so khớp secret trong Script Properties (`SERECT_SHEET`); đúng mới ghi, sai bỏ qua; tự tạo sheet `Log` + tiêu đề; chặn công thức (= + - @).

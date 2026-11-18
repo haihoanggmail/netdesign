@@ -16,7 +16,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "pretest": "npm run build:viewer3d",
-    "test": "tsx src/utils/__tests__/runTests.ts && tsx src/utils/__tests__/viewportMath.test.ts && tsx src/utils/__tests__/selectionBounds.test.ts && tsx src/utils/__tests__/v24.test.ts && tsx src/utils/__tests__/v25.test.ts && tsx src/utils/__tests__/viewer3dHtml.test.ts && tsx src/utils/__tests__/viewer3dRuntime.test.ts && tsx src/utils/__tests__/viewer3dBundle.test.ts && tsx src/utils/__tests__/sceneBudget.test.ts",
+    "test": "tsx src/utils/__tests__/runTests.ts && tsx src/utils/__tests__/viewportMath.test.ts && tsx src/utils/__tests__/selectionBounds.test.ts && tsx src/utils/__tests__/v24.test.ts && tsx src/utils/__tests__/v25.test.ts && tsx src/utils/__tests__/viewer3dHtml.test.ts && tsx src/utils/__tests__/viewer3dRuntime.test.ts && tsx src/utils/__tests__/viewer3dBundle.test.ts && tsx src/utils/__tests__/sceneBudget.test.ts && tsx src/utils/__tests__/sceneSerialize.test.ts",
     "bench": "tsx src/utils/__tests__/perf.bench.ts",
     "bench:enforce": "tsx src/utils/__tests__/perf.bench.ts --enforce --json=test-results/bench.json",
     "pretest:e2e": "npm run build:viewer3d",
