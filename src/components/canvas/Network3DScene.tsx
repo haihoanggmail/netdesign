@@ -802,9 +802,39 @@ export const Network3DScene = forwardRef<Network3DSceneHandle, Network3DScenePro
               hidden.push(o);
             }
           });
+          // LỖI GỐC "Ho[t.path.type] is not a constructor": TubeGeometry.toJSON() ghi path là CurvePath
+          // (đường cáp bo góc), nhưng ObjectLoader -> TubeGeometry.fromJSON() chỉ tra được các curve đơn
+          // (CatmullRomCurve3, LineCurve3...) chứ KHÔNG có "CurvePath". Vì vậy đổi tạm mọi TubeGeometry
+          // thành BufferGeometry thường (giữ nguyên vertex/normal/uv/index) trong lúc toJSON, rồi trả lại.
+          const bakedCache = new Map<THREE.BufferGeometry, THREE.BufferGeometry>();
+          const swapped: Array<{ mesh: THREE.Mesh; original: THREE.BufferGeometry }> = [];
+          scene.traverse(o => {
+            const mesh = o as THREE.Mesh;
+            const geo = mesh.geometry as THREE.BufferGeometry | undefined;
+            if (!mesh.isMesh || !geo || geo.type !== 'TubeGeometry') return;
+            let baked = bakedCache.get(geo);
+            if (!baked) {
+              baked = new THREE.BufferGeometry();
+              const index = geo.getIndex();
+              if (index) baked.setIndex(index.clone());
+              for (const name of Object.keys(geo.attributes)) {
+                baked.setAttribute(name, geo.attributes[name].clone());
+              }
+              geo.groups.forEach(g => baked!.addGroup(g.start, g.count, g.materialIndex));
+              baked.name = geo.name;
+              baked.computeBoundingSphere();
+              bakedCache.set(geo, baked);
+            }
+            swapped.push({ mesh, original: geo });
+            mesh.geometry = baked;
+          });
           try {
             sceneJson = scene.toJSON() as unknown as Record<string, unknown>;
           } finally {
+            swapped.forEach(({ mesh, original }) => {
+              mesh.geometry = original;
+            });
+            bakedCache.forEach(g => g.dispose());
             hidden.forEach(o => {
               o.visible = true;
             });
