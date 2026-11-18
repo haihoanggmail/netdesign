@@ -111,6 +111,10 @@ interface ViewportContextValue {
   clear3DCaptureError: () => void;
   capture3DImage: (options?: Capture3DRequestOptions) => Promise<Capture3DResult>;
   capture3DScene: () => Scene3DSnapshot;
+  /** Chụp cảnh 3D ở BẤT KỲ chế độ nào: nếu đang xem 2D sẽ tự dựng cảnh 3D ẩn rồi gỡ ngay sau khi chụp. */
+  capture3DSceneAsync: () => Promise<Scene3DSnapshot>;
+  /** true khi App cần mount một cảnh 3D ẩn (ngoài màn hình) để phục vụ xuất file từ chế độ 2D. */
+  offscreen3DRequested: boolean;
   get3DCanvasCenter: () => { x: number; y: number } | null;
   update2DHandlers: (handlers: Viewport2DHandlers) => void;
 }
@@ -148,6 +152,8 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
   const handle3DRef = useRef<Network3DSceneHandle | null>(null);
   const handlers2DRef = useRef<Viewport2DHandlers | null>(null);
   const capturePromiseRef = useRef<Promise<Capture3DResult> | null>(null);
+  const [offscreen3DRequested, setOffscreen3DRequested] = useState(false);
+  const offscreenUsersRef = useRef(0);
 
   // Sync isFullscreen cleanly with native fullscreenchange (handles ESC & browser chrome exits)
   useEffect(() => {
@@ -257,19 +263,67 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
     setLast3DCaptureError(null);
   }, []);
 
+  /**
+   * Đảm bảo có một cảnh 3D sẵn sàng. Đang ở 3D -> dùng luôn cảnh hiện tại. Đang ở 2D -> yêu cầu App mount
+   * cảnh 3D ẩn, chờ WebGL + nội dung dựng xong. Trả về hàm release() để gỡ cảnh ẩn.
+   */
+  const ensure3DScene = useCallback(async (): Promise<() => void> => {
+    const ready = () => {
+      const h = handle3DRef.current;
+      return !!h && !h.isContextLost();
+    };
+    if (ready()) return () => {};
+    offscreenUsersRef.current += 1;
+    setOffscreen3DRequested(true);
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      offscreenUsersRef.current = Math.max(0, offscreenUsersRef.current - 1);
+      if (offscreenUsersRef.current === 0) setOffscreen3DRequested(false);
+    };
+    const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+    const frames = () =>
+      new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    const deadline = Date.now() + 20000;
+    while (Date.now() < deadline) {
+      if (ready()) {
+        await frames();
+        await sleep(200); // để các effect dựng thiết bị / cáp trong cảnh chạy xong
+        if (ready()) return release;
+      }
+      await sleep(60);
+    }
+    release();
+    throw new Error(
+      'Không khởi tạo được cảnh 3D (WebGL) để xuất. Hãy bật tăng tốc phần cứng hoặc chuyển sang chế độ 3D rồi thử lại.'
+    );
+  }, []);
+
   const capture3DImage = useCallback(
     async (options?: Capture3DRequestOptions): Promise<Capture3DResult> => {
       if (capturePromiseRef.current) {
         return capturePromiseRef.current;
       }
+      let release: () => void = () => {};
+      if (!handle3DRef.current) {
+        try {
+          release = await ensure3DScene();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setLast3DCaptureError(msg);
+          throw err;
+        }
+      }
       const handle = handle3DRef.current;
       if (!handle) {
-        const msg =
-          'Không thể chụp mô hình 3D vì không gian 3D chưa sẵn sàng. Vui lòng chuyển sang chế độ 3D trước khi xuất.';
+        release();
+        const msg = 'Không thể chụp mô hình 3D vì không gian 3D chưa sẵn sàng.';
         setLast3DCaptureError(msg);
         throw new Error(msg);
       }
       if (handle.isContextLost() || is3DContextLost) {
+        release();
         const msg =
           'WebGL Context của khung nhìn 3D đang bị mất hoặc tạm gián đoạn. Vui lòng khôi phục khung nhìn 3D rồi thử lại.';
         setLast3DCaptureError(msg);
@@ -289,12 +343,13 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
         .finally(() => {
           capturePromiseRef.current = null;
           setIsCapturing3D(false);
+          release();
         });
 
       capturePromiseRef.current = job;
       return job;
     },
-    [is3DContextLost]
+    [is3DContextLost, ensure3DScene]
   );
 
   const capture3DScene = useCallback((): Scene3DSnapshot => {
@@ -311,6 +366,15 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
     }
     return handle.exportSceneSnapshot();
   }, [is3DContextLost]);
+
+  const capture3DSceneAsync = useCallback(async (): Promise<Scene3DSnapshot> => {
+    const release = await ensure3DScene();
+    try {
+      return capture3DScene();
+    } finally {
+      release();
+    }
+  }, [ensure3DScene, capture3DScene]);
 
   const get3DCanvasCenter = useCallback(
     () => handle3DRef.current?.getCanvasCenter() ?? null,
@@ -343,6 +407,8 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
       clear3DCaptureError,
       capture3DImage,
       capture3DScene,
+      capture3DSceneAsync,
+      offscreen3DRequested,
       get3DCanvasCenter,
       update2DHandlers
     }),
@@ -367,6 +433,8 @@ export const ViewportProvider: React.FC<ViewportProviderProps> = ({
       clear3DCaptureError,
       capture3DImage,
       capture3DScene,
+      capture3DSceneAsync,
+      offscreen3DRequested,
       get3DCanvasCenter,
       update2DHandlers
     ]
